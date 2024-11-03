@@ -9,4 +9,4 @@
 
 | Валерий Убушаев 💻 | Роберт Чеченов 💻 | Сулейман Лугма 💻 | Арслан Батталов 💻 |
 |:----------------:|:--------------:|:--------------:|:---------------:|
-| [@flw1n](https://t.me/flw1n) | [@roberto_roz](https://t.me/roberto_roz) | [@lsuleimanl](https://t.me/lsuleimanl) | [@arslan_battalov](https://t.me/arslan_battalov) |
+| [@flw1n](https://t.me/flw1n) | [@roberto_roz](https://t.me/roberto_roz) | [@lsuleimanl](https://t.me/lsuleimanl) | [@young_pin1](https://t.me/young_pin1) |
