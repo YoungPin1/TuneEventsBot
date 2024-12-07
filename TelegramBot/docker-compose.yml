@@ -1,0 +1,28 @@
+services:
+  db:
+    image: postgres:15
+    container_name: postgres_db
+    ports:
+      - "5432:5432"
+    restart: always
+    env_file:
+      - app/.env
+    volumes:
+      - db-data:/var/lib/postgresql/data
+
+  telegram_bot:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: telegram_bot
+    command: >
+      sh -c "alembic upgrade head && alembic revision --autogenerate -m "check" && python main.py"
+    env_file:
+      - app/.env
+    depends_on:
+      - db
+    volumes:
+      - ./app:/app
+
+volumes:
+  db-data:
