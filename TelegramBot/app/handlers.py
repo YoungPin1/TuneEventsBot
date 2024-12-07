@@ -38,7 +38,7 @@ async def add_first_link(message: Message, state: FSMContext) -> None:
     # Проверяем, соответствует ли ссылка шаблону
     if yandex_music_playlist_pattern.match(message.text):
         # Сохраняем ссылку на плейлист пользователя
-        process_playlist(message.text)
+        await state.update_data(link=message.text)
         # Запрашиваем город пользователя
         await state.set_state(Info.city)
         await message.answer("Введите город, в котором проживаете)")
@@ -53,7 +53,10 @@ async def add_first_link(message: Message, state: FSMContext) -> None:
 @router.message(Info.city)
 async def add_first_city(message: Message, state: FSMContext) -> None:
     # сохраняем город пользователя
+    data = await state.get_data()
+    playlist_link = data.get('link')
     await state.update_data(city=message.text)
+    process_playlist(playlist_link, message.text)
     await state.clear()
     await message.answer("Доступные опции", reply_markup=kb.main)
 

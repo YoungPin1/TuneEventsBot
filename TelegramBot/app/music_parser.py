@@ -42,8 +42,8 @@ class YMusicUser:
                 self.concerts.append(concert)
 
 
-def process_playlist(url):
-    user = YMusicUser('Москва')  # Указать город или передать из другого источника
+def process_playlist(url, city):
+    user = YMusicUser(city)
     playlist_id, user_id = YMusicUser.extract_user_and_playlist_id(url)
     if playlist_id and user_id:
         ids = user.get_artists(playlist_id, user_id)
