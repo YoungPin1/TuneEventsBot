@@ -4,3 +4,4 @@ sqlalchemy==2.0.36
 aiohttp==3.10.11
 alembic==1.14.0
 psycopg2-binary==2.9.10
+yandex_music==2.2.0
