@@ -3,8 +3,10 @@ from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery
+import re
 
 import keyboards as kb
+
 
 router = Router()
 
@@ -28,15 +30,28 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
 
 @router.message(Info.link)
 async def add_first_link(message: Message, state: FSMContext) -> None:
-    # сохраняем плейлист пользователя
-    await state.update_data(link=message.text)
-    # запрашиваем город пользователя
-    await state.set_state(Info.city)
-    await message.answer("Введите город, в котором проживаете)")
+    # Регулярное выражение для проверки ссылки на плейлист Yandex Music
+    yandex_music_playlist_pattern = re.compile(
+        r"^https?://music\.yandex\.(ru|com)/(users/[^/]+/playlists/\d+|album/\d+/track/\d+)$"
+    )
+
+    # Проверяем, соответствует ли ссылка шаблону
+    if yandex_music_playlist_pattern.match(message.text):
+        # Сохраняем ссылку на плейлист пользователя
+        await state.update_data(link=message.text)
+        # Запрашиваем город пользователя
+        await state.set_state(Info.city)
+        await message.answer("Введите город, в котором проживаете)")
+    else:
+        # Сообщаем пользователю об ошибке и просим ввести ссылку ещё раз
+        await message.answer(
+            "Кажется, это не ссылка на плейлист из Yandex Music. Пожалуйста, отправьте корректную ссылку, например:\n\n"
+            "https://music.yandex.ru/users/username/playlists/123"
+        )
 
 
 @router.message(Info.city)
-async def add_first_link(message: Message, state: FSMContext) -> None:
+async def add_first_city(message: Message, state: FSMContext) -> None:
     # сохраняем город пользователя
     await state.update_data(city=message.text)
     await state.clear()
