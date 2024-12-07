@@ -9,6 +9,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from music_parser import YMusicUser, process_playlist
 
 
+# Проверка на правильный парсинг и получения ID
 @patch('music_parser.Client')
 def test_extract_user_and_playlist_id(mock_client):
     url = "https://music.yandex.ru/users/testuser/playlists/123"
@@ -17,6 +18,7 @@ def test_extract_user_and_playlist_id(mock_client):
     assert user_id == "testuser"
 
 
+# Проверка на неправильную ссылку
 def test_extract_user_and_playlist_id_invalid():
     url = "invalid_url"
     playlist_id, user_id = YMusicUser.extract_user_and_playlist_id(url)

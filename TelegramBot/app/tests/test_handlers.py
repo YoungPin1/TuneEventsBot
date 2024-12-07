@@ -11,6 +11,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from handlers import command_start_handler, add_first_link, send_concert, send_next_concert, Info
 
 
+# Проверка изначальной работоспособности кода
 @pytest.mark.asyncio
 async def test_command_start_handler():
     message = AsyncMock(spec=Message)
@@ -29,6 +30,7 @@ async def test_command_start_handler():
     state.set_state.assert_called_once_with(Info.link)
 
 
+# Проверка правильного добавления ссылки
 @pytest.mark.asyncio
 async def test_add_first_link_valid():
     message = AsyncMock(spec=Message)
@@ -43,6 +45,7 @@ async def test_add_first_link_valid():
     message.answer.assert_called_once_with("🏙️ Введите город, в котором проживаете:")
 
 
+# Проверка на неправильную ссылку
 @pytest.mark.asyncio
 async def test_add_first_link_invalid():
     message = AsyncMock(spec=Message)
@@ -55,6 +58,7 @@ async def test_add_first_link_invalid():
     message.answer.assert_called_once_with("❌ Это не ссылка на плейлист из Yandex Music. Попробуйте снова.")
 
 
+# Проверка на конец списка концертов
 @pytest.mark.asyncio
 async def test_send_next_concert():
     callback = AsyncMock(spec=CallbackQuery)
