@@ -47,9 +47,8 @@ def process_playlist(url, city):
     playlist_id, user_id = YMusicUser.extract_user_and_playlist_id(url)
     if playlist_id and user_id:
         ids = user.get_artists(playlist_id, user_id)
-        concerts = []
         for artist_id in ids:
-            concerts.append(user.get_concert(artist_id))
-        print(user.concerts)
+            user.get_concert(artist_id)
+        return user.concerts
     else:
         print("Некорректная ссылка на плейлист.")
