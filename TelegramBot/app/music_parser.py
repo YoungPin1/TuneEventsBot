@@ -41,10 +41,6 @@ class YMusicUser:
             if concert['city'] == self.city:
                 self.concerts.append(concert)
 
-    def filter_by_city(self):
-        for concert in concerts:
-            print(concert)
-
 
 url = "https://music.yandex.ru/users/aabattaloov@gmail.com/playlists/3"
 user = YMusicUser('Москва')
