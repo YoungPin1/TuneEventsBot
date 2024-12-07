@@ -42,11 +42,14 @@ class YMusicUser:
                 self.concerts.append(concert)
 
 
-url = "https://music.yandex.ru/users/aabattaloov@gmail.com/playlists/3"
-user = YMusicUser('Москва')
-ids = user.get_artists(*YMusicUser.extract_user_and_playlist_id(url))
-concerts = []
-for id in ids:
-    concerts.append(user.get_concert(id))
-
-print(user.concerts)
+def process_playlist(url):
+    user = YMusicUser('Москва')  # Указать город или передать из другого источника
+    playlist_id, user_id = YMusicUser.extract_user_and_playlist_id(url)
+    if playlist_id and user_id:
+        ids = user.get_artists(playlist_id, user_id)
+        concerts = []
+        for artist_id in ids:
+            concerts.append(user.get_concert(artist_id))
+        print(user.concerts)
+    else:
+        print("Некорректная ссылка на плейлист.")

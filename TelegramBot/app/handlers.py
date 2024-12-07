@@ -6,7 +6,7 @@ from aiogram.types import Message, CallbackQuery
 import re
 
 import keyboards as kb
-
+from music_parser import process_playlist
 
 router = Router()
 
@@ -38,7 +38,7 @@ async def add_first_link(message: Message, state: FSMContext) -> None:
     # Проверяем, соответствует ли ссылка шаблону
     if yandex_music_playlist_pattern.match(message.text):
         # Сохраняем ссылку на плейлист пользователя
-        await state.update_data(link=message.text)
+        process_playlist(message.text)
         # Запрашиваем город пользователя
         await state.set_state(Info.city)
         await message.answer("Введите город, в котором проживаете)")
