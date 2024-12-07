@@ -6,4 +6,4 @@ alembic==1.14.0
 psycopg2-binary==2.9.10
 yandex_music==2.2.0
 pytest==8.3.4
-asyncio==3.4.3
+pytest-asyncio==0.24.0
