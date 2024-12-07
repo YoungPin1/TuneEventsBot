@@ -2,63 +2,143 @@ from aiogram import F, Router, html
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message, CallbackQuery
-import re
+from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from datetime import datetime
+# import locale
 
 import keyboards as kb
 from music_parser import process_playlist
 
 router = Router()
 
+# Устанавливаем локаль для русской даты
+# locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
-# ----------------------------------------------------------------------------------------------------------------------
-# РЕГИСТРАЦИЯ
-# ----------------------------------------------------------------------------------------------------------------------
+
+# Состояния для FSM
 class Info(StatesGroup):
     link = State()
     city = State()
     artist = State()
 
 
+current_concert_index = 0  # Глобальный индекс текущего концерта
+
+
+# Команда /start
 @router.message(CommandStart())
 async def command_start_handler(message: Message, state: FSMContext) -> None:
     await message.answer(f"Привет, {html.bold(message.from_user.full_name)}!")
-    # запрашиваем ссылку на плейлист пользователя
     await state.set_state(Info.link)
-    await message.answer("Добавь свой первый плейлист! (Отправь в чат ссылку на свой плейлист из Yandex Music)")
+    await message.answer("🎵 Добавь свой первый плейлист!\n\n"
+                         "Отправь ссылку на плейлист из Yandex Music, например:\n"
+                         "<i>https://music.yandex.ru/users/username/playlists/123</i>",
+                         parse_mode="HTML")
 
 
+# Добавление первой ссылки
 @router.message(Info.link)
 async def add_first_link(message: Message, state: FSMContext) -> None:
-    # Регулярное выражение для проверки ссылки на плейлист Yandex Music
-    yandex_music_playlist_pattern = re.compile(
-        r"^https?://music\.yandex\.(ru|com)/(users/[^/]+/playlists/\d+|album/\d+/track/\d+)$"
-    )
-
-    # Проверяем, соответствует ли ссылка шаблону
-    if yandex_music_playlist_pattern.match(message.text):
-        # Сохраняем ссылку на плейлист пользователя
+    if message.text.startswith("https://music.yandex."):
         await state.update_data(link=message.text)
-        # Запрашиваем город пользователя
         await state.set_state(Info.city)
-        await message.answer("Введите город, в котором проживаете)")
+        await message.answer("🏙️ Введите город, в котором проживаете:")
     else:
-        # Сообщаем пользователю об ошибке и просим ввести ссылку ещё раз
-        await message.answer(
-            "Кажется, это не ссылка на плейлист из Yandex Music. Пожалуйста, отправьте корректную ссылку, например:\n\n"
-            "https://music.yandex.ru/users/username/playlists/123"
-        )
+        await message.answer("❌ Это не ссылка на плейлист из Yandex Music. Попробуйте снова.")
 
 
+# Добавление города и отправка концертов
 @router.message(Info.city)
 async def add_first_city(message: Message, state: FSMContext) -> None:
-    # сохраняем город пользователя
+    global current_concert_index
     data = await state.get_data()
     playlist_link = data.get('link')
     await state.update_data(city=message.text)
-    process_playlist(playlist_link, message.text)
-    await state.clear()
-    await message.answer("Доступные опции", reply_markup=kb.main)
+
+    concerts = process_playlist(playlist_link, message.text)
+    await state.update_data(concerts=concerts)
+
+    current_concert_index = 0
+    await send_concert(message, concerts, current_concert_index)
+
+
+# Функция отправки информации о концерте
+async def send_concert(message: Message, concerts, index: int):
+    concert = concerts[index]
+    concertTitle = concert['concert_title']
+    datetimeRaw = concert['datetime']
+    place = concert['place']
+    address = concert['address']
+    afishaUrl = concert['afisha_url']
+
+    datetimeStr = datetimeRaw.split('+')[0]
+    formattedDate = datetime.strptime(datetimeStr, "%Y-%m-%dT%H:%M:%S").strftime("%d %B %Y, %H:%M")
+
+    messageText = (
+        f"🎤 <b>Артист:</b> {concertTitle}\n"
+        f"📅 <b>Дата и время:</b> {formattedDate}\n"
+        f"🏢 <b>Площадка:</b> {place}\n"
+        f"📍 <b>Адрес:</b> {address}\n\n"
+        f"Нажмите <a href=\"{afishaUrl}\">тык</a> для покупки билета 🎟️"
+    )
+
+    keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="➡️ Следующее", callback_data="next_concert")]
+        ]
+    )
+
+    await message.answer(messageText, parse_mode="HTML", reply_markup=keyboard)
+
+
+# Обработчик кнопки "Следующее"
+@router.callback_query(lambda c: c.data == "next_concert")
+async def send_next_concert(callback: CallbackQuery, state: FSMContext):
+    global current_concert_index
+    data = await state.get_data()
+    concerts = data.get('concerts', [])
+
+    if current_concert_index < len(concerts) - 1:
+        current_concert_index += 1
+        await send_concert(callback.message, concerts, current_concert_index)
+    else:
+        await callback.answer("Это был последний концерт!", show_alert=True)
+
+    await callback.answer()
+
+
+# ________
+
+# рабочий старый код (отправляет все концерты разом)
+# @router.message(Info.city)
+# async def add_first_city(message: Message, state: FSMContext) -> None:
+#     # сохраняем город пользователя
+#     data = await state.get_data()
+#     playlist_link = data.get('link')
+#     await state.update_data(city=message.text)
+#     concerts = process_playlist(playlist_link, message.text)
+#     for concert in concerts:
+#         print(concert)
+#         concertTitle = concert['concert_title']
+#         datetimeRaw = concert['datetime']
+#         place = concert['place']
+#         address = concert['address']
+#         afishaUrl = concert['afisha_url']
+#
+#         datetimeStr = datetimeRaw.split('+')[0]
+#         formattedDate = datetime.strptime(datetimeStr, "%Y-%m-%dT%H:%M:%S").strftime("%d %B %Y, %H:%M")
+#
+#         messageText = (
+#             f"{'🎤 Артист:'} {concertTitle}\n"
+#             f"{'📅 Дата и время:'} {formattedDate}\n"
+#             f"{'🏢 Площадка:'} {place}\n"
+#             f"{'📍 Адрес:'} {address}\n\n"
+#             f"Нажмите <a href=\"{afishaUrl}\">тык</a> для покупки билета 🎟️"
+#         )
+#
+#         await message.answer(messageText, parse_mode="HTML")
+#     await state.clear()
+#     await message.answer("Доступные опции", reply_markup=kb.main)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
