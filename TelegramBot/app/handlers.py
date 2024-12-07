@@ -30,7 +30,6 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     await message.answer(f"Привет, {html.bold(message.from_user.full_name)}!")
     await state.set_state(Info.link)
 
-    # Сохраняем сообщение о вводе плейлиста
     prompt_message = await message.answer(
         "🎵 Добавь свой первый плейлист!\n\n"
         "Отправь ссылку на плейлист из Yandex Music, например:\n"
@@ -40,6 +39,7 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     await state.update_data(prompt_message_id=prompt_message.message_id)
 
 
+# Обрабатываем ссылку на плейлист
 @router.message(Info.link)
 async def add_first_link(message: Message, state: FSMContext) -> None:
     data = await state.get_data()
@@ -67,11 +67,11 @@ async def add_first_link(message: Message, state: FSMContext) -> None:
 
 
 
+#Добавляем город для поиска
 @router.message(Info.city)
 async def add_first_city(message: Message, state: FSMContext) -> None:
     global current_concert_index
 
-    # Удаляем сообщение с запросом города
     data = await state.get_data()
     prompt_message_id = data.get('prompt_message_id')
     if prompt_message_id:
@@ -80,37 +80,29 @@ async def add_first_city(message: Message, state: FSMContext) -> None:
         except Exception as e:
             print(f"Ошибка при удалении сообщения с запросом города: {e}")
 
-    # Удаляем сообщение пользователя с введённым городом
     try:
         await message.delete()
     except Exception as e:
         print(f"Ошибка при удалении сообщения пользователя: {e}")
 
-    # Добавляем сообщение об ожидании
     waiting_message = await message.answer("⏳ Подождите, идёт поиск концертов...")
-
-    # Получаем ссылку на плейлист и сохраняем город
     playlist_link = data.get('link')
     await state.update_data(city=message.text)
-
-    # Получаем концерты
     concerts = process_playlist(playlist_link, message.text)
     await state.update_data(concerts=concerts)
 
-    # Удаляем сообщение об ожидании после получения концертов
     try:
         await waiting_message.delete()
     except Exception as e:
         print(f"Ошибка при удалении сообщения об ожидании: {e}")
 
-    # Отправляем сообщение о найденных концертах
     await message.answer("🎉 Вот концерты ваших любимых артистов:")
 
     current_concert_index = 0
     await send_concert(message, concerts, current_concert_index)
 
 
-
+#Присылаем концерты
 async def send_concert(message: Message, concerts, index: int):
     concert = concerts[index]
     concertTitle = concert['concert_title']
@@ -125,7 +117,6 @@ async def send_concert(message: Message, concerts, index: int):
     total_concerts = len(concerts)
     counter_text = f"<b>{index + 1} из {total_concerts}</b>\n\n"
 
-    # Сообщение с информацией о концерте
     messageText = (
         f"{counter_text}"
         f"🎤 <b>Артист:</b> {concertTitle}\n"
