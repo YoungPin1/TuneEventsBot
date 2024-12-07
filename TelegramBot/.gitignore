@@ -2,4 +2,4 @@
 /shelf/
 /workspace.xml
 /app/.env
-/app/migration_orig/versions/
+/app/migration/versions/
