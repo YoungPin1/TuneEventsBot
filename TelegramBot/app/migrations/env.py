@@ -1,30 +1,32 @@
 from logging.config import fileConfig
+from termios import BSDLY
+
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
-from dotenv import load_dotenv
-from alembic import context
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from models import Base
 
+from alembic import context
+
+from dotenv import load_dotenv
 import os
+from models import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
-load_dotenv(dotenv_path='SQL')
+load_dotenv()
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
+
+config.set_main_option('sqlalchemy.url', os.getenv('SQLALCHEMY_URL'))
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
 target_metadata = Base.metadata
-config.set_main_option('sqlalchemy.url', os.getenv('SQLALCHEMY_URL'))
+
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
@@ -32,7 +34,7 @@ config.set_main_option('sqlalchemy.url', os.getenv('SQLALCHEMY_URL'))
 
 
 def run_migrations_offline() -> None:
-    """Run migration in 'offline' mode.
+    """Run migrations in 'offline' mode.
 
     This configures the context with just a URL
     and not an Engine, though an Engine is acceptable
@@ -56,7 +58,7 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migration in 'online' mode.
+    """Run migrations in 'online' mode.
 
     In this scenario we need to create an Engine
     and associate a connection with the context.

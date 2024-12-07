@@ -1,5 +1,4 @@
 # Default ignored files
-/shelf/
-/workspace.xml
+.idea/shelf/
+/.idea/workspace.xml
 /app/.env
-/app/migration/versions/
