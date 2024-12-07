@@ -6,10 +6,12 @@ from yandex_music import Client
 
 
 class YMusicUser:
-    def __init__(self):
+    def __init__(self, city=None):
         load_dotenv()
         token = os.getenv('YMUSIC_TOKEN')
         self.client = Client(token).init()
+        self.city = city
+        self.concerts = []
 
     @staticmethod
     def extract_user_and_playlist_id(url):
@@ -32,17 +34,23 @@ class YMusicUser:
                 artist_ids.add(artist.id)
         return artist_ids
 
-    #Не работает токен одного аккаунта, токен другого аккаунта
     def get_concert(self, artist_id):
         artist = self.client.artists_brief_info(artist_id)
-        return artist.concerts
+        concerts = artist.concerts
+        for concert in concerts:
+            if concert['city'] == self.city:
+                self.concerts.append(concert)
+
+    def filter_by_city(self):
+        for concert in concerts:
+            print(concert)
 
 
-url = "https://music.yandex.ru/users/Mr.Arslan004/playlists/1063?utm_medium=copy_link"
-user = YMusicUser()
+url = "https://music.yandex.ru/users/aabattaloov@gmail.com/playlists/3"
+user = YMusicUser('Москва')
 ids = user.get_artists(*YMusicUser.extract_user_and_playlist_id(url))
-print(ids)
+concerts = []
 for id in ids:
-    print(id, end=' ')
-    print(user.get_concert(id))
+    concerts.append(user.get_concert(id))
 
+print(user.concerts)
