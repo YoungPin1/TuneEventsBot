@@ -10,6 +10,8 @@
 
 #                     Telegram Bot                         #
 
+[![видеоотчет](https://img.youtube.com/vi/WGVPwF0T0a8/maxresdefault.jpg)](https://youtu.be/WGVPwF0T0a8)
+
 ## Обзор проекта
 Этот проект представляет собой Telegram-бота, реализованного с использованием библиотеки Aiogram для работы с Telegram API. Бот позволяет находить концерты исполнителей из предоставленного пользователем плейлиста (только Yandex Music) в указанном городе.
 
