@@ -38,7 +38,10 @@ class Concert(Base):
     artist_id = Column(Integer, ForeignKey('artists.artist_id'), nullable=False)
     concert_date = Column(Date, nullable=False)
     concert_city = Column(String, nullable=False)
-
+    concert_title = Column(String, nullable=False)
+    place = Column(String, nullable=True)
+    address = Column(String, nullable=True)
+    afisha_url = Column(String, nullable=True)
     artist = relationship("Artist", back_populates="concerts")
     user_concerts = relationship("UserConcerts", back_populates="concert")
 
@@ -51,3 +54,4 @@ class UserConcerts(Base):
 
     user = relationship("User", back_populates="concerts")
     concert = relationship("Concert", back_populates="user_concerts")
+
