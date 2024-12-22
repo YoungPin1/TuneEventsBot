@@ -1,5 +1,3 @@
-# keyboards.py
-
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from constants import (
     SHOW_EVENTS_BUTTON,
@@ -28,6 +26,18 @@ intro_keyboard = InlineKeyboardMarkup(
             InlineKeyboardButton(
                 text=CHANGE_CITY_BUTTON,
                 callback_data=CHANGE_CITY_CALLBACK
+            )
+        ]
+    ]
+)
+
+# Клавиатура для сообщения с просьбой добавить плейлист
+add_playlist_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text=BACK_BUTTON_TEXT,
+                callback_data="back_to_intro"
             )
         ]
     ]
