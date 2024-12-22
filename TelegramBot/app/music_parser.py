@@ -3,6 +3,7 @@ from re import search
 
 from dotenv import load_dotenv
 from yandex_music import Client
+from db_editor import add_artist_and_concert_to_db
 
 
 class YMusicUser:
@@ -11,7 +12,8 @@ class YMusicUser:
         token = os.getenv('YMUSIC_TOKEN')
         self.client = Client(token).init()
         self.city = city
-        self.concerts = [   ]
+        self.concerts = []
+        self.all_concerts = []
 
     @staticmethod
     def extract_user_and_playlist_id(url):
@@ -44,17 +46,35 @@ class YMusicUser:
             for concert in concerts:
                 if concert.get('city') == self.city:
                     self.concerts.append(concert)
+                    self.all_concerts.append(concert)
         except Exception as e:
             print(f"Ошибка при получении информации об артисте с ID {artist_id}: {e}")
 
 
-def process_playlist(url, city):
+def process_playlist(url, city, user_telegram_id):
     user = YMusicUser(city)
     playlist_id, user_id = YMusicUser.extract_user_and_playlist_id(url)
+
     if playlist_id and user_id:
-        ids = user.get_artists(playlist_id, user_id)
-        for artist_id in ids:
+        artist_ids = user.get_artists(playlist_id, user_id)
+
+        for artist_id in artist_ids:
             user.get_concert(artist_id)
-        return [user.concerts, ids]
+
+            for concert in user.concerts:
+                concert_data = {
+                    'artist_id': artist_id,
+                    'concert_title': concert['concert_title'],
+                    'datetime': concert['datetime'],
+                    'city': concert.get('city', 'Не указан'),
+                    'place': concert.get('place', None),
+                    'address': concert.get('address', None),
+                    'afisha_url': concert.get('afisha_url', None)
+                }
+
+                add_artist_and_concert_to_db(concert_data, user_telegram_id)
+            user.concerts = []
+        return user.all_concerts
     else:
         print("Некорректная ссылка на плейлист.")
+

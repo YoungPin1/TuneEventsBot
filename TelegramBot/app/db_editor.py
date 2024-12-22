@@ -45,7 +45,7 @@ def add_artist_and_concert_to_db(concert_data: dict, user_telegram_id: int):
                 return
 
             # Извлекаем данные о концерте
-            artist_name = concert_data['artist_name']  # Предполагается, что artist_name передается в concert_data
+            artist_name = str(concert_data['artist_id'])  # Предполагается, что artist_name передается в concert_data
             concert_date = datetime.strptime(concert_data['datetime'].split('+')[0], "%Y-%m-%dT%H:%M:%S")
             concert_city = concert_data['city']
             concert_title = concert_data['concert_title']
