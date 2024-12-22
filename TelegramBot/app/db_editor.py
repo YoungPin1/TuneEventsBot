@@ -22,9 +22,8 @@ def is_user_registered(message: Message) -> bool:
         return True
 
 
-def add_users_city(message: Message) -> None:
-    city_name = message.text
-    user_telegram_id = message.from_user.id
+def add_users_city(user_telegram_id, new_city) -> None:
+    city_name = new_city
     with SessionLocal() as session:
         # Ищем пользователя по его telegram_id
         user = session.query(User).filter_by(user_telegram_id=user_telegram_id).first()
