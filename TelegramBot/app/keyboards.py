@@ -1,4 +1,5 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton
+from constants import *
 
 main = ReplyKeyboardMarkup(
     keyboard=[[KeyboardButton(text='Добавить Плейлист'), KeyboardButton(text='Удалить Плейлист')],
@@ -13,3 +14,24 @@ reaction_on_artists = InlineKeyboardMarkup(
 
 reaction_on_cities = InlineKeyboardMarkup(
     inline_keyboard=[[InlineKeyboardButton(text='Показать список Городов', callback_data='get_cities')]])
+
+intro_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text=SHOW_EVENTS_BUTTON,
+                callback_data=SHOW_EVENTS_CALLBACK
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text=ADD_PLAYLIST_BUTTON,
+                callback_data=ADD_PLAYLIST_CALLBACK
+            ),
+            InlineKeyboardButton(
+                text=CHANGE_CITY_BUTTON,
+                callback_data=CHANGE_CITY_CALLBACK
+            )
+        ]
+    ]
+)

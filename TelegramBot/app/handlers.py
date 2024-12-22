@@ -5,11 +5,12 @@ from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
-from config import SessionLocal
-from models import *
 
 import keyboards as kb
+from config import SessionLocal
 from constants import *
+from mock_db import *
+from models import *
 from music_parser import process_playlist
 
 # import locale
@@ -29,14 +30,28 @@ class Info(StatesGroup):
 current_concert_index = 0  # Глобальный индекс текущего концерта
 
 
+#функция для отправки приветственного сообщения с клавиатурой
+async def send_intro_message(message: Message):
+    # await message.answer_sticker(STICKER_WELCOME)
+    await message.answer(
+        INTRO_MESSAGE_TEXT,
+        reply_markup=kb.intro_keyboard
+    )
+
+
 # Команда /start
 @router.message(CommandStart())
 async def command_start_handler(message: Message, state: FSMContext) -> None:
-    await message.answer(f"Привет, {html.bold(message.from_user.full_name)}!")
+    await message.answer(f"Привет, {html.bold(message.from_user.full_name)}! 👋", parse_mode="HTML")
     await state.set_state(Info.link)
 
-    prompt_message = await message.answer(ADD_FIRST_PLAYLIST)
-    await state.update_data(prompt_message_id=prompt_message.message_id)
+    is_user_in_db = is_user_registered(message)
+
+    # prompt_message = await message.answer(ADD_FIRST_PLAYLIST, parse_mode="HTML")
+    # await state.update_data(prompt_message_id=prompt_message.message_id)
+
+    # Отправка приветственного сообщения с кнопками
+    await send_intro_message(message)
 
 
 # Обрабатываем ссылку на плейлист
@@ -154,6 +169,7 @@ async def send_next_concert(callback: CallbackQuery, state: FSMContext):
 
     await callback.answer()
 
+
 async def add_playlist_to_db(message: Message, state: FSMContext) -> None:
     playlist_link = message.text
     user_telegram_id = message.from_user.id
@@ -203,40 +219,6 @@ async def add_playlist_to_db(message: Message, state: FSMContext) -> None:
 
     # Очищаем состояние FSM
     await state.clear()
-
-
-# ________
-
-# рабочий старый код (отправляет все концерты разом)
-# @router.message(Info.city)
-# async def add_first_city(message: Message, state: FSMContext) -> None:
-#     # сохраняем город пользователя
-#     data = await state.get_data()
-#     playlist_link = data.get('link')
-#     await state.update_data(city=message.text)
-#     concerts = process_playlist(playlist_link, message.text)
-#     for concert in concerts:
-#         print(concert)
-#         concertTitle = concert['concert_title']
-#         datetimeRaw = concert['datetime']
-#         place = concert['place']
-#         address = concert['address']
-#         afishaUrl = concert['afisha_url']
-#
-#         datetimeStr = datetimeRaw.split('+')[0]
-#         formattedDate = datetime.strptime(datetimeStr, "%Y-%m-%dT%H:%M:%S").strftime("%d %B %Y, %H:%M")
-#
-#         messageText = (
-#             f"{'🎤 Артист:'} {concertTitle}\n"
-#             f"{'📅 Дата и время:'} {formattedDate}\n"
-#             f"{'🏢 Площадка:'} {place}\n"
-#             f"{'📍 Адрес:'} {address}\n\n"
-#             f"Нажмите <a href=\"{afishaUrl}\">тык</a> для покупки билета 🎟️"
-#         )
-#
-#         await message.answer(messageText, parse_mode="HTML")
-#     await state.clear()
-#     await message.answer("Доступные опции", reply_markup=kb.main)
 
 
 # ----------------------------------------------------------------------------------------------------------------------
