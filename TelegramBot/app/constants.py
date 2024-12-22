@@ -68,3 +68,5 @@ CITY_CHELYABINSK_CALLBACK = "city_chelyabinsk"
 CITY_SAMARA_CALLBACK = "city_samara"
 CITY_UFA_CALLBACK = "city_ufa"
 CITY_OTHER_CALLBACK = "city_other"
+
+citySet = ('Москва')

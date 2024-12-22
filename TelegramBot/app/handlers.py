@@ -6,11 +6,14 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
+from auxiliary_functions import checkCityInSet
+
 import keyboards as kb
 from config import SessionLocal
 from constants import *
 from models import *
 from music_parser import process_playlist
+from db_editor import add_users_city
 
 # import locale
 
@@ -55,18 +58,20 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
 async def add_playlist_button_handler(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
 
-    await state.set_state(Info.link)
+    await state.set_state(Info.city)  # Используем существующее состояние Info.city
+    await state.update_data(action="add_city")  # Устанавливаем флаг действия
+
     try:
         await callback_query.message.edit_text(
             ADD_FIRST_PLAYLIST,
-            reply_markup=kb.add_playlist_keyboard,
+            reply_markup=kb.back_keyboard,
             parse_mode="HTML"
         )
     except Exception as e:
         print(f"{ERROR_EDIT_USER_MESSAGE} {e}")
         prompt_message = await callback_query.message.answer(
             ADD_FIRST_PLAYLIST,
-            reply_markup=kb.add_playlist_keyboard,
+            reply_markup=kb.back_keyboard,
             parse_mode="HTML"
         )
         await state.update_data(prompt_message_id=prompt_message.message_id)
@@ -100,23 +105,28 @@ async def back_to_intro_handler(callback_query: CallbackQuery):
 async def change_city_handler(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
 
-    # Устанавливаем состояние для выбора города
+    # Устанавливаем состояние Info.city и флаг действия "change_city"
     await state.set_state(Info.city)
+    await state.update_data(action="change_city")  # Добавляем флаг действия
 
-    # Отправляем сообщение с выбором города, заменяя предыдущее сообщение
+    # Отправляем сообщение с просьбой ввести город
     try:
         await callback_query.message.edit_text(
-            "Выберите ваш город:",
-            reply_markup=kb.change_city_keyboard,
+            "Введите город, в котором вы проживаете:",
+            reply_markup=kb.back_keyboard,
             parse_mode="HTML"
         )
+        # Сохраняем message_id редактированного сообщения
+        await state.update_data(prompt_message_id=callback_query.message.message_id)
     except Exception as e:
         print(f"{ERROR_EDIT_USER_MESSAGE} {e}")
-        await callback_query.message.answer(
-            "Выберите ваш город:",
-            reply_markup=kb.change_city_keyboard,
+        prompt_message = await callback_query.message.answer(
+            "Введите город, в котором вы проживаете:",
+            reply_markup=kb.back_keyboard,
             parse_mode="HTML"
         )
+        # Сохраняем message_id нового сообщения
+        await state.update_data(prompt_message_id=prompt_message.message_id)
 
 
 
@@ -147,39 +157,142 @@ async def add_first_link(message: Message, state: FSMContext) -> None:
         await message.answer(INVALID_PLAYLIST_LINK)
 
 
-# Добавляем город для поиска
+# Обработчик ввода города
 @router.message(Info.city)
 async def add_first_city(message: Message, state: FSMContext) -> None:
     global current_concert_index
 
+    city_name = message.text.strip()
+    user_telegram_id = message.from_user.id
+
+    # Получаем данные состояния
     data = await state.get_data()
+    action = data.get('action')
     prompt_message_id = data.get('prompt_message_id')
-    if prompt_message_id:
-        try:
-            await message.bot.delete_message(chat_id=message.chat.id, message_id=prompt_message_id)
-        except Exception as e:
-            print(f"{ERROR_DELETE_CITY_REQUEST} {e}")
 
-    try:
-        await message.delete()
-    except Exception as e:
-        print(f"{ERROR_DELETE_USER_MESSAGE} {e}")
+    if checkCityInSet(city_name, citySet):
+        if action == "change_city":
+            try:
+                add_users_city(user_telegram_id, city_name)
+            except Exception as e:
+                print(f"Ошибка при вызове change_city: {e}")
+                await message.answer("Произошла ошибка при изменении города. Попробуйте снова.")
+                return
 
-    waiting_message = await message.answer(WAIT_CONCERT_SEARCH)
-    playlist_link = data.get('link')
-    await state.update_data(city=message.text)
-    concerts = process_playlist(playlist_link, message.text)[0]
-    await state.update_data(concerts=concerts)
+            # Сообщение об успешном добавлении города
+            await message.answer("Ваш город успешно добавлен!", reply_markup=kb.intro_keyboard)
 
-    try:
-        await waiting_message.delete()
-    except Exception as e:
-        print(f"{ERROR_DELETE_WAIT_MESSAGE} {e}")
+            # Сбрасываем состояние
+            await state.clear()
 
-    await message.answer(FAVORITE_ARTISTS_CONCERTS)
+            # Возвращаемся на приветственное сообщение, заменяя предыдущее сообщение
+            if prompt_message_id:
+                try:
+                    await message.bot.edit_message_text(
+                        chat_id=message.chat.id,
+                        message_id=prompt_message_id,
+                        text=INTRO_MESSAGE_TEXT,
+                        reply_markup=kb.intro_keyboard,
+                        parse_mode="HTML"
+                    )
+                except Exception as e:
+                    print(f"{ERROR_EDIT_USER_MESSAGE} {e}")
+                    await message.answer(
+                        INTRO_MESSAGE_TEXT,
+                        reply_markup=kb.intro_keyboard,
+                        parse_mode="HTML"
+                    )
+            else:
+                await message.answer(
+                    INTRO_MESSAGE_TEXT,
+                    reply_markup=kb.intro_keyboard,
+                    parse_mode="HTML"
+                )
+        elif action == "add_city":
+            # Логика добавления города при добавлении плейлиста
+            try:
+                await message.delete()
+            except Exception as e:
+                print(f"{ERROR_DELETE_USER_MESSAGE} {e}")
 
-    current_concert_index = 0
-    await send_concert(message, concerts, current_concert_index)
+            waiting_message = await message.answer(WAIT_CONCERT_SEARCH)
+            playlist_link = data.get('link')
+            await state.update_data(city=city_name)
+            concerts = process_playlist(playlist_link, city_name)[0]
+            await state.update_data(concerts=concerts)
+
+            try:
+                await waiting_message.delete()
+            except Exception as e:
+                print(f"{ERROR_DELETE_WAIT_MESSAGE} {e}")
+
+            await message.answer(FAVORITE_ARTISTS_CONCERTS)
+
+            current_concert_index = 0
+            await send_concert(message, concerts, current_concert_index)
+
+            # Сбрасываем состояние
+            await state.clear()
+    else:
+        if action == "change_city":
+            # Сообщение о том, что город не найден при изменении города
+            if prompt_message_id:
+                try:
+                    await message.bot.edit_message_text(
+                        chat_id=message.chat.id,
+                        message_id=prompt_message_id,
+                        text=(
+                            "Ваш город не найден, проверьте написание.\n"
+                            "Пожалуйста, введите город снова:"
+                        ),
+                        reply_markup=kb.back_keyboard,
+                        parse_mode="HTML"
+                    )
+                except Exception as e:
+                    print(f"{ERROR_EDIT_USER_MESSAGE} {e}")
+                    await message.answer(
+                        "Ваш город не найден, проверьте написание.\n"
+                        "Пожалуйста, введите город снова:",
+                        reply_markup=kb.back_keyboard,
+                        parse_mode="HTML"
+                    )
+            else:
+                await message.answer(
+                    "Ваш город не найден, проверьте написание.\n"
+                    "Пожалуйста, введите город снова:",
+                    reply_markup=kb.back_keyboard,
+                    parse_mode="HTML"
+                )
+        elif action == "add_city":
+            # Сообщение о том, что город не найден при добавлении плейлиста
+            if prompt_message_id:
+                try:
+                    await message.bot.edit_message_text(
+                        chat_id=message.chat.id,
+                        message_id=prompt_message_id,
+                        text=(
+                            "Ваш город не найден, проверьте написание.\n"
+                            "Пожалуйста, введите город снова:"
+                        ),
+                        reply_markup=kb.back_keyboard,
+                        parse_mode="HTML"
+                    )
+                except Exception as e:
+                    print(f"{ERROR_EDIT_USER_MESSAGE} {e}")
+                    await message.answer(
+                        "Ваш город не найден, проверьте написание.\n"
+                        "Пожалуйста, введите город снова:",
+                        reply_markup=kb.back_keyboard,
+                        parse_mode="HTML"
+                    )
+            else:
+                await message.answer(
+                    "Ваш город не найден, проверьте написание.\n"
+                    "Пожалуйста, введите город снова:",
+                    reply_markup=kb.back_keyboard,
+                    parse_mode="HTML"
+                )
+
 
 
 # Присылаем концерты
