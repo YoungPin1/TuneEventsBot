@@ -49,6 +49,6 @@ def process_playlist(url, city):
         ids = user.get_artists(playlist_id, user_id)
         for artist_id in ids:
             user.get_concert(artist_id)
-        return user.concerts
+        return [user.concerts, ids]
     else:
         print("Некорректная ссылка на плейлист.")

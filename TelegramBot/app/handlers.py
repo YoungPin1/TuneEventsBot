@@ -5,6 +5,8 @@ from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from config import SessionLocal
+from models import *
 
 import keyboards as kb
 from constants import *
@@ -82,10 +84,10 @@ async def add_first_city(message: Message, state: FSMContext) -> None:
     except Exception as e:
         print(f"{ERROR_DELETE_USER_MESSAGE} {e}")
 
-    waiting_message = await message.answer(SEARCH_CONCERTS_WAIT)
+    waiting_message = await message.answer(WAIT_CONCERT_SEARCH)
     playlist_link = data.get('link')
     await state.update_data(city=message.text)
-    concerts = process_playlist(playlist_link, message.text)
+    concerts = process_playlist(playlist_link, message.text)[0]
     await state.update_data(concerts=concerts)
 
     try:
@@ -151,6 +153,56 @@ async def send_next_concert(callback: CallbackQuery, state: FSMContext):
         await callback.answer(LAST_CONCERT_MESSAGE, show_alert=True)
 
     await callback.answer()
+
+async def add_playlist_to_db(message: Message, state: FSMContext) -> None:
+    playlist_link = message.text
+    user_telegram_id = message.from_user.id
+
+    try:
+        # Получаем список артистов из плейлиста
+        artists = process_playlist(playlist_link, None)[1]
+
+        # Создаем сессию для работы с базой данных
+        with SessionLocal() as session:
+            # Проверяем, есть ли пользователь в базе, если нет, то добавляем его
+            user = session.query(User).filter_by(user_telegram_id=user_telegram_id).first()
+            if not user:
+                user = User(user_telegram_id=user_telegram_id, city="Не указан")  # Или запросить город позже
+                session.add(user)
+                session.commit()
+
+            # Обрабатываем артистов
+            for artist_name in artists:
+                # Ищем артиста по имени в базе
+                artist_name = str(artist_name)
+                artist = session.query(Artist).filter_by(artist_name=artist_name).first()
+
+                # Если артиста нет в базе, добавляем нового
+                if not artist:
+                    artist = Artist(artist_name=artist_name)
+                    session.add(artist)
+                    session.commit()  # Сохраняем нового артиста в базе
+
+                # Проверяем, есть ли уже связь между пользователем и артистом
+                link_exists = session.query(ArtistsUsers).filter_by(
+                    user_id=user.user_id,
+                    artist_id=artist.artist_id
+                ).first()
+
+                # Если связи нет, создаем её
+                if not link_exists:
+                    session.add(ArtistsUsers(user_id=user.user_id, artist_id=artist.artist_id))
+                    session.commit()
+
+        # Уведомляем пользователя, что плейлист успешно добавлен
+        await message.answer("Плейлист успешно добавлен и артисты сохранены!")
+    except Exception as e:
+        # В случае ошибки выводим сообщение и логируем ошибку
+        print(f"Ошибка при добавлении плейлиста: {e}")
+        await message.answer("Произошла ошибка при добавлении плейлиста. Попробуйте снова.")
+
+    # Очищаем состояние FSM
+    await state.clear()
 
 
 # ________
