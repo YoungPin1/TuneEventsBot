@@ -1,9 +1,8 @@
-from aiogram.fsm.context import FSMContext
+from datetime import datetime
 from aiogram.types import Message
 
 from config import SessionLocal
 from models import *
-from music_parser import process_playlist
 
 
 def is_user_registered(message: Message) -> bool:
@@ -37,47 +36,80 @@ def add_users_city(message: Message) -> None:
             print(f"Пользователь с ID {user_telegram_id} не найден.")
 
 
-async def add_playlist_to_db(message: Message, state: FSMContext) -> None:
-    playlist_link = message.text
-    user_telegram_id = message.from_user.id
-
+def add_artist_and_concert_to_db(concert_data: dict, user_telegram_id: int):
     try:
-        # Получаем список артистов из плейлиста
-        artists = process_playlist(playlist_link, None)[1]
-        # Создаем сессию для работы с базой данных
         with SessionLocal() as session:
-            # Проверяем, есть ли пользователь в базе, если нет, то добавляем его
+            # Проверяем, существует ли пользователь
             user = session.query(User).filter_by(user_telegram_id=user_telegram_id).first()
+            if not user:
+                print(f"Пользователь с ID {user_telegram_id} не найден в базе.")
+                return
 
-            # Обрабатываем артистов
-            for artist_name in artists:
-                # Ищем артиста по имени в базе
-                artist_name = str(artist_name)
-                artist = session.query(Artist).filter_by(artist_name=artist_name).first()
+            # Извлекаем данные о концерте
+            artist_name = concert_data['artist_name']  # Предполагается, что artist_name передается в concert_data
+            concert_date = datetime.strptime(concert_data['datetime'].split('+')[0], "%Y-%m-%dT%H:%M:%S")
+            concert_city = concert_data['city']
+            concert_title = concert_data['concert_title']
+            place = concert_data.get('place', None)
+            address = concert_data.get('address', None)
+            afisha_url = concert_data.get('afisha_url', None)
 
-                # Если артиста нет в базе, добавляем нового
-                if not artist:
-                    artist = Artist(artist_name=artist_name)
-                    session.add(artist)
-                    session.commit()  # Сохраняем нового артиста в базе
+            # Проверяем, существует ли артист
+            artist = session.query(Artist).filter_by(artist_name=artist_name).first()
+            if not artist:
+                # Если артиста нет, создаем его
+                artist = Artist(artist_name=artist_name)
+                session.add(artist)
+                session.commit()
 
-                # Проверяем, есть ли уже связь между пользователем и артистом
-                link_exists = session.query(ArtistsUsers).filter_by(
+            # Проверяем, существует ли концерт
+            concert = session.query(Concert).filter_by(
+                concert_date=concert_date,
+                concert_city=concert_city,
+                concert_title=concert_title
+            ).first()
+
+            if not concert:
+                # Если концерта нет, добавляем его
+                concert = Concert(
+                    concert_date=concert_date,
+                    concert_city=concert_city,
+                    concert_title=concert_title,
+                    place=place,
+                    address=address,
+                    afisha_url=afisha_url
+                )
+                session.add(concert)
+                session.commit()
+
+            # Проверяем и создаем связь между артистом и концертом
+            artist_concert_link = session.query(artists_concerts).filter_by(
+                artist_id=artist.artist_id,
+                concert_id=concert.concert_id
+            ).first()
+
+            if not artist_concert_link:
+                # Если связи нет, добавляем её через промежуточную таблицу
+                insert_statement = artists_concerts.insert().values(
+                    artist_id=artist.artist_id,
+                    concert_id=concert.concert_id
+                )
+                session.execute(insert_statement)
+                session.commit()
+
+            # Создаем связь между пользователем и концертом
+            user_concert_link = session.query(UserConcerts).filter_by(
+                user_id=user.user_id,
+                concert_id=concert.concert_id
+            ).first()
+
+            if not user_concert_link:
+                user_concert_link = UserConcerts(
                     user_id=user.user_id,
-                    artist_id=artist.artist_id
-                ).first()
+                    concert_id=concert.concert_id
+                )
+                session.add(user_concert_link)
+                session.commit()
 
-                # Если связи нет, создаем её
-                if not link_exists:
-                    session.add(ArtistsUsers(user_id=user.user_id, artist_id=artist.artist_id))
-                    session.commit()
-        # Уведомляем пользователя, что плейлист успешно добавлен
-        await message.answer("Плейлист успешно добавлен и артисты сохранены!")
     except Exception as e:
-        # В случае ошибки выводим сообщение и логируем ошибку
-        print(f"Ошибка при добавлении плейлиста: {e}")
-        await message.answer("Произошла ошибка при добавлении плейлиста. Попробуйте снова.")
-
-    # Очищаем состояние FSM
-    await state.clear()
-
+        print(f"Ошибка при добавлении артиста и концертов: {e}")
