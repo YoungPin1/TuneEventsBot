@@ -1,7 +1,13 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, Date
+from sqlalchemy import Column, Integer, String, ForeignKey, Date, Table
 from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
+
+artists_concerts = Table(
+    'artists_concerts', Base.metadata,
+    Column('artist_id', Integer, ForeignKey('artists.artist_id'), primary_key=True),
+    Column('concert_id', Integer, ForeignKey('concerts.concert_id'), primary_key=True)
+)
 
 class User(Base):
     __tablename__ = 'user'
@@ -19,7 +25,7 @@ class Artist(Base):
     artist_name = Column(String, nullable=False)
 
     artists_users = relationship("ArtistsUsers", back_populates="artist")
-    concerts = relationship("Concert", back_populates="artist")
+    concerts = relationship("Concert", secondary=artists_concerts, back_populates="artists")
 
 
 class ArtistsUsers(Base):
@@ -35,14 +41,14 @@ class ArtistsUsers(Base):
 class Concert(Base):
     __tablename__ = 'concerts'
     concert_id = Column(Integer, primary_key=True)
-    artist_id = Column(Integer, ForeignKey('artists.artist_id'), nullable=False)
     concert_date = Column(Date, nullable=False)
     concert_city = Column(String, nullable=False)
     concert_title = Column(String, nullable=False)
     place = Column(String, nullable=True)
     address = Column(String, nullable=True)
     afisha_url = Column(String, nullable=True)
-    artist = relationship("Artist", back_populates="concerts")
+
+    artists = relationship("Artist", secondary=artists_concerts, back_populates="concerts")
     user_concerts = relationship("UserConcerts", back_populates="concert")
 
 
@@ -54,4 +60,3 @@ class UserConcerts(Base):
 
     user = relationship("User", back_populates="concerts")
     concert = relationship("Concert", back_populates="user_concerts")
-
