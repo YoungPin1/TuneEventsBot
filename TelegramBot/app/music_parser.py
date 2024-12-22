@@ -11,7 +11,7 @@ class YMusicUser:
         token = os.getenv('YMUSIC_TOKEN')
         self.client = Client(token).init()
         self.city = city
-        self.concerts = []
+        self.concerts = [   ]
 
     @staticmethod
     def extract_user_and_playlist_id(url):
@@ -35,11 +35,17 @@ class YMusicUser:
         return artist_ids
 
     def get_concert(self, artist_id):
-        artist = self.client.artists_brief_info(artist_id)
-        concerts = artist.concerts
-        for concert in concerts:
-            if concert['city'] == self.city:
-                self.concerts.append(concert)
+        try:
+            artist = self.client.artists_brief_info(artist_id)
+            if not artist or not hasattr(artist, 'concerts'):
+                print(f"Информация о концертах для артиста с ID {artist_id} недоступна.")
+                return
+            concerts = artist.concerts
+            for concert in concerts:
+                if concert.get('city') == self.city:
+                    self.concerts.append(concert)
+        except Exception as e:
+            print(f"Ошибка при получении информации об артисте с ID {artist_id}: {e}")
 
 
 def process_playlist(url, city):
