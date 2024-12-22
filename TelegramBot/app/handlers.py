@@ -1,16 +1,19 @@
-import asyncio
+from datetime import datetime
+
 from aiogram import F, Router, html
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
-from datetime import datetime
-# import locale
 
 import keyboards as kb
+from constants import *
 from music_parser import process_playlist
 
+# import locale
+
 router = Router()
+
 
 # locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
@@ -30,12 +33,7 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     await message.answer(f"Привет, {html.bold(message.from_user.full_name)}!")
     await state.set_state(Info.link)
 
-    prompt_message = await message.answer(
-        "🎵 Добавь свой первый плейлист!\n\n"
-        "Отправь ссылку на плейлист из Yandex Music, например:\n"
-        "<i>https://music.yandex.ru/users/username/playlists/123</i>",
-        parse_mode="HTML"
-    )
+    prompt_message = await message.answer(ADD_FIRST_PLAYLIST)
     await state.update_data(prompt_message_id=prompt_message.message_id)
 
 
@@ -49,25 +47,24 @@ async def add_first_link(message: Message, state: FSMContext) -> None:
         try:
             await message.bot.delete_message(chat_id=message.chat.id, message_id=prompt_message_id)
         except Exception as e:
-            print(f"Ошибка при удалении сообщения с запросом плейлиста: {e}")
+            print(f"{ERROR_DELETING_PLAYLIST_REQUEST_MESSAGE} {e}")
 
     try:
         await message.delete()
     except Exception as e:
-        print(f"Ошибка при удалении сообщения пользователя с плейлистом: {e}")
+        print(f"{ERROR_DELETING_USER_PLAYLIST_MESSAGE} {e}")
 
     if message.text.startswith("https://music.yandex."):
         await state.update_data(link=message.text)
         await state.set_state(Info.city)
 
-        prompt_message = await message.answer("🏙️ Введите город, в котором проживаете:")
+        prompt_message = await message.answer(ENTER_CITY_PROMPT)
         await state.update_data(prompt_message_id=prompt_message.message_id)
     else:
-        await message.answer("❌ Это не ссылка на плейлист из Yandex Music. Попробуйте снова.")
+        await message.answer(INVALID_PLAYLIST_LINK)
 
 
-
-#Добавляем город для поиска
+# Добавляем город для поиска
 @router.message(Info.city)
 async def add_first_city(message: Message, state: FSMContext) -> None:
     global current_concert_index
@@ -78,14 +75,14 @@ async def add_first_city(message: Message, state: FSMContext) -> None:
         try:
             await message.bot.delete_message(chat_id=message.chat.id, message_id=prompt_message_id)
         except Exception as e:
-            print(f"Ошибка при удалении сообщения с запросом города: {e}")
+            print(f"{ERROR_DELETE_CITY_REQUEST} {e}")
 
     try:
         await message.delete()
     except Exception as e:
-        print(f"Ошибка при удалении сообщения пользователя: {e}")
+        print(f"{ERROR_DELETE_USER_MESSAGE} {e}")
 
-    waiting_message = await message.answer("⏳ Подождите, идёт поиск концертов...")
+    waiting_message = await message.answer(SEARCH_CONCERTS_WAIT)
     playlist_link = data.get('link')
     await state.update_data(city=message.text)
     concerts = process_playlist(playlist_link, message.text)
@@ -94,15 +91,15 @@ async def add_first_city(message: Message, state: FSMContext) -> None:
     try:
         await waiting_message.delete()
     except Exception as e:
-        print(f"Ошибка при удалении сообщения об ожидании: {e}")
+        print(f"{ERROR_DELETE_WAIT_MESSAGE} {e}")
 
-    await message.answer("🎉 Вот концерты ваших любимых артистов:")
+    await message.answer(FAVORITE_ARTISTS_CONCERTS)
 
     current_concert_index = 0
     await send_concert(message, concerts, current_concert_index)
 
 
-#Присылаем концерты
+# Присылаем концерты
 async def send_concert(message: Message, concerts, index: int):
     concert = concerts[index]
     concertTitle = concert['concert_title']
@@ -117,18 +114,18 @@ async def send_concert(message: Message, concerts, index: int):
     total_concerts = len(concerts)
     counter_text = f"<b>{index + 1} из {total_concerts}</b>\n\n"
 
-    messageText = (
-        f"{counter_text}"
-        f"🎤 <b>Артист:</b> {concertTitle}\n"
-        f"📅 <b>Дата и время:</b> {formattedDate}\n"
-        f"🏢 <b>Площадка:</b> {place}\n"
-        f"📍 <b>Адрес:</b> {address}\n\n"
-        f"Нажмите <a href=\"{afishaUrl}\">тык</a> для покупки билета 🎟️"
+    messageText = CONCERT_MESSAGE_TEMPLATE.format(
+        counter_text=counter_text,
+        concert_title=concertTitle,
+        formatted_date=formattedDate,
+        place=place,
+        address=address,
+        afisha_url=afishaUrl
     )
 
     keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
-            [InlineKeyboardButton(text="➡️ Следующее", callback_data="next_concert")]
+            [InlineKeyboardButton(text=NEXT_CONCERT_MESSAGE, callback_data="next_concert")]
         ]
     )
 
@@ -137,9 +134,7 @@ async def send_concert(message: Message, concerts, index: int):
     try:
         await message.delete()
     except Exception as e:
-        print(f"Ошибка при удалении сообщения: {e}")
-
-
+        print(f"{ERROR_DELETE_USER_MESSAGE} {e}")
 
 
 # Обработчик кнопки "Следующее"
@@ -153,7 +148,7 @@ async def send_next_concert(callback: CallbackQuery, state: FSMContext):
         current_concert_index += 1
         await send_concert(callback.message, concerts, current_concert_index)
     else:
-        await callback.answer("Это был последний концерт!", show_alert=True)
+        await callback.answer(LAST_CONCERT_MESSAGE, show_alert=True)
 
     await callback.answer()
 
