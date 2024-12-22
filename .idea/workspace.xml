@@ -4,8 +4,9 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="5be324ae-643e-4b2b-922d-aa54b97820c0" name="Changes" comment="fixed imports">
+    <list default="true" id="5be324ae-643e-4b2b-922d-aa54b97820c0" name="Changes" comment="feat: models, db_editor added">
       <change afterPath="$PROJECT_DIR$/TelegramBot/app/mock_db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/TelegramBot/app/constants.py" beforeDir="false" afterPath="$PROJECT_DIR$/TelegramBot/app/constants.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/TelegramBot/app/handlers.py" beforeDir="false" afterPath="$PROJECT_DIR$/TelegramBot/app/handlers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/TelegramBot/app/keyboards.py" beforeDir="false" afterPath="$PROJECT_DIR$/TelegramBot/app/keyboards.py" afterDir="false" />
@@ -46,7 +47,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "SHARE_PROJECT_CONFIGURATION_FILES": "true",
     "git-widget-placeholder": "main",
-    "last_opened_file_path": "/home/feelw1n/deep_python_hw/TuneEventsBot/TelegramBot/app/migrations",
+    "last_opened_file_path": "/Users/arslanbattalov/Documents/TuneEventsBot/TelegramBot/app",
     "node.js.detected.package.eslint": "true",
     "node.js.detected.package.tslint": "true",
     "node.js.selected.package.eslint": "(autodetect)",
@@ -58,6 +59,7 @@
 }]]></component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$/TelegramBot/app" />
       <recent name="$PROJECT_DIR$/TelegramBot/app/migrations" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
@@ -155,7 +157,21 @@
       <option name="project" value="LOCAL" />
       <updated>1733492008303</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="feat: added new intro message">
+      <created>1734896271915</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1734896271915</updated>
+    </task>
+    <task id="LOCAL-00003" summary="feat: models, db_editor added">
+      <created>1734897399392</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1734897399392</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -163,11 +179,13 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="fixed imports" />
-    <option name="LAST_COMMIT_MESSAGE" value="fixed imports" />
+    <MESSAGE value="feat: added new intro message" />
+    <MESSAGE value="feat: models, db_editor added" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: models, db_editor added" />
   </component>
   <component name="com.intellij.coverage.CoverageDataManagerImpl">
     <SUITE FILE_PATH="coverage/TuneEventsBot$env.coverage" NAME="env Coverage Results" MODIFIED="1733593670948" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/TelegramBot/app/migration" />
-    <SUITE FILE_PATH="coverage/TuneEventsBot$main.coverage" NAME="main Coverage Results" MODIFIED="1734896003671" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/TelegramBot/app" />
+    <SUITE FILE_PATH="coverage/TuneEventsBot$main.coverage" NAME="main Coverage Results" MODIFIED="1734900426741" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/TelegramBot/app" />
     <SUITE FILE_PATH="coverage/TuneEventsBot$.coverage" NAME=" Coverage Results" MODIFIED="1733614851657" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/TelegramBot/app/tests" />
     <SUITE FILE_PATH="coverage/TuneEventsBot$music_parser.coverage" NAME="music_parser Coverage Results" MODIFIED="1733604316426" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/TelegramBot/app" />
   </component>
