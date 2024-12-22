@@ -9,7 +9,6 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKe
 import keyboards as kb
 from config import SessionLocal
 from constants import *
-from mock_db import *
 from models import *
 from music_parser import process_playlist
 
@@ -45,7 +44,7 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
     await message.answer(f"Привет, {html.bold(message.from_user.full_name)}! 👋", parse_mode="HTML")
     await state.set_state(Info.link)
 
-    is_user_in_db = is_user_registered(message)
+
 
     # prompt_message = await message.answer(ADD_FIRST_PLAYLIST, parse_mode="HTML")
     # await state.update_data(prompt_message_id=prompt_message.message_id)
