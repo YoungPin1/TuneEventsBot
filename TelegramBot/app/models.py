@@ -11,7 +11,7 @@ artists_concerts = Table(
 
 class User(Base):
     __tablename__ = 'user'
-    user_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, primary_key=True, autoincrement=True)
     user_telegram_id = Column(Integer, nullable=False)
     city = Column(String, nullable=False)
 
@@ -21,7 +21,7 @@ class User(Base):
 
 class Artist(Base):
     __tablename__ = 'artists'
-    artist_id = Column(Integer, primary_key=True)
+    artist_id = Column(Integer, primary_key=True, autoincrement=True)
     artist_name = Column(String, nullable=False)
 
     artists_users = relationship("ArtistsUsers", back_populates="artist")
@@ -30,7 +30,7 @@ class Artist(Base):
 
 class ArtistsUsers(Base):
     __tablename__ = 'artists_users'
-    artists_users_id = Column(Integer, primary_key=True)
+    artists_users_id = Column(Integer, primary_key=True, autoincrement=True)
     artist_id = Column(Integer, ForeignKey('artists.artist_id'), nullable=False)
     user_id = Column(Integer, ForeignKey('user.user_id'), nullable=False)
 
@@ -40,7 +40,7 @@ class ArtistsUsers(Base):
 
 class Concert(Base):
     __tablename__ = 'concerts'
-    concert_id = Column(Integer, primary_key=True)
+    concert_id = Column(Integer, primary_key=True, autoincrement=True)
     concert_date = Column(Date, nullable=False)
     concert_city = Column(String, nullable=False)
     concert_title = Column(String, nullable=False)
@@ -54,7 +54,7 @@ class Concert(Base):
 
 class UserConcerts(Base):
     __tablename__ = 'user_concerts'
-    user_concerts_id = Column(Integer, primary_key=True)
+    user_concerts_id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('user.user_id'), nullable=False)
     concert_id = Column(Integer, ForeignKey('concerts.concert_id'), nullable=False)
 
