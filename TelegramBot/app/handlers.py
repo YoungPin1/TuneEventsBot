@@ -9,7 +9,6 @@ from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKe
 import keyboards as kb
 from config import SessionLocal
 from constants import *
-from mock_db import *
 from models import *
 from music_parser import process_playlist
 
@@ -43,15 +42,82 @@ async def send_intro_message(message: Message):
 @router.message(CommandStart())
 async def command_start_handler(message: Message, state: FSMContext) -> None:
     await message.answer(f"Привет, {html.bold(message.from_user.full_name)}! 👋", parse_mode="HTML")
-    await state.set_state(Info.link)
 
-    is_user_in_db = is_user_registered(message)
 
     # prompt_message = await message.answer(ADD_FIRST_PLAYLIST, parse_mode="HTML")
     # await state.update_data(prompt_message_id=prompt_message.message_id)
 
     # Отправка приветственного сообщения с кнопками
     await send_intro_message(message)
+
+# Обработчик кнопки "Добавить плейлист"
+@router.callback_query(F.data == "add_playlist")
+async def add_playlist_button_handler(callback_query: CallbackQuery, state: FSMContext):
+    await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
+
+    await state.set_state(Info.link)
+    try:
+        await callback_query.message.edit_text(
+            ADD_FIRST_PLAYLIST,
+            reply_markup=kb.add_playlist_keyboard,
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        print(f"{ERROR_EDIT_USER_MESSAGE} {e}")
+        prompt_message = await callback_query.message.answer(
+            ADD_FIRST_PLAYLIST,
+            reply_markup=kb.add_playlist_keyboard,
+            parse_mode="HTML"
+        )
+        await state.update_data(prompt_message_id=prompt_message.message_id)
+    else:
+        # Если редактирование удалось, сохраняем новое message_id
+        await state.update_data(prompt_message_id=callback_query.message.message_id)
+
+
+# Обработчик кнопки "Назад"
+@router.callback_query(F.data == "back_to_intro")
+async def back_to_intro_handler(callback_query: CallbackQuery):
+    await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
+
+    # Попытка заменить сообщение на приветственное
+    try:
+        await callback_query.message.edit_text(
+            INTRO_MESSAGE_TEXT,
+            reply_markup=kb.intro_keyboard,
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        print(f"{ERROR_EDIT_USER_MESSAGE} {e}")
+        await callback_query.message.answer(
+            INTRO_MESSAGE_TEXT,
+            reply_markup=kb.intro_keyboard,
+            parse_mode="HTML"
+        )
+
+# Обработчик кнопки "🌍 Изменить город"
+@router.callback_query(F.data == "change_city")
+async def change_city_handler(callback_query: CallbackQuery, state: FSMContext):
+    await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
+
+    # Устанавливаем состояние для выбора города
+    await state.set_state(Info.city)
+
+    # Отправляем сообщение с выбором города, заменяя предыдущее сообщение
+    try:
+        await callback_query.message.edit_text(
+            "Выберите ваш город:",
+            reply_markup=kb.change_city_keyboard,
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        print(f"{ERROR_EDIT_USER_MESSAGE} {e}")
+        await callback_query.message.answer(
+            "Выберите ваш город:",
+            reply_markup=kb.change_city_keyboard,
+            parse_mode="HTML"
+        )
+
 
 
 # Обрабатываем ссылку на плейлист
@@ -219,141 +285,3 @@ async def add_playlist_to_db(message: Message, state: FSMContext) -> None:
 
     # Очищаем состояние FSM
     await state.clear()
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# ДОБАВИТЬ / УДАЛИТЬ / ПОСМОТРЕТЬ ГОРОД(А)
-# ----------------------------------------------------------------------------------------------------------------------
-class City(StatesGroup):
-    add_city = State()
-    del_city = State()
-
-
-@router.message(F.text == 'Добавить Город')
-async def add_city_1(message: Message, state: FSMContext) -> None:
-    # запрашиваем город пользователя
-    await state.set_state(City.add_city)
-    await message.answer("Введите город, в котором вам удобно посещать концерты)")
-
-
-@router.message(F.text == 'Удалить Город')
-async def del_city_1(message: Message, state: FSMContext) -> None:
-    # запрашиваем город пользователя
-    await state.set_state(City.del_city)
-    await message.answer("Введите город, который хотите удалить из своего списка)")
-
-
-@router.message(City.add_city)
-async def add_city_2(message: Message, state: FSMContext) -> None:
-    # сохраняем город пользователя
-    await state.update_data(city=message.text)
-    # добавить в базу данных
-    await state.clear()
-    await message.reply("Город Добавлен!")
-    await message.answer("Доступна опция:", reply_markup=kb.reaction_on_cities)
-
-
-@router.message(City.del_city)
-async def del_city_2(message: Message, state: FSMContext) -> None:
-    # сохраняем город пользователя
-    await state.update_data(city=message.text)
-    # удалить из базы данных
-    await state.clear()
-    await message.reply("Город Удален!")
-    await message.answer("Доступна опция:", reply_markup=kb.reaction_on_cities)
-
-
-@router.callback_query(F.data == 'get_cities')
-async def returning_cities(callback: CallbackQuery) -> None:
-    await callback.answer("2")
-    await callback.message.answer("2")
-    # тут будет информация из базы данных
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# ДОБАВИТЬ / УДАЛИТЬ / ПОСМОТРЕТЬ ИСПОЛНИТЕЛЯ(ЕЙ)
-# ----------------------------------------------------------------------------------------------------------------------
-class Artist(StatesGroup):
-    add_artist = State()
-    del_artist = State()
-
-
-@router.message(F.text == 'Добавить Исполнителя')
-async def add_artist_1(message: Message, state: FSMContext) -> None:
-    # запрашиваем исполнителя пользователя
-    await state.set_state(Artist.add_artist)
-    await message.answer("Введите исполнителя, чьи концерты вы хотите видеть)")
-
-
-@router.message(F.text == 'Удалить Исполнителя')
-async def del_artist_1(message: Message, state: FSMContext) -> None:
-    # запрашиваем исполнителя пользователя
-    await state.set_state(Artist.del_artist)
-    await message.answer("Введите исполнителя, который вам больше не интересен)")
-
-
-@router.message(Artist.add_artist)
-async def add_artist_2(message: Message, state: FSMContext) -> None:
-    # сохраняем исполнителя пользователя
-    await state.update_data(artist=message.text)
-    # добавить в базу данных
-    await state.clear()
-    await message.reply("Исполнитель Добавлен!")
-    await message.answer("Доступна опция:", reply_markup=kb.reaction_on_cities)
-
-
-@router.message(Artist.del_artist)
-async def del_artist_2(message: Message, state: FSMContext) -> None:
-    # сохраняем исполнителя пользователя
-    await state.update_data(artist=message.text)
-    # удалить из базы данных
-    await state.clear()
-    await message.reply("Исполнитель Удален!")
-    await message.answer("Доступна опция:", reply_markup=kb.reaction_on_artists)
-
-
-@router.callback_query(F.data == 'get_artists')
-async def returning_cities(callback: CallbackQuery) -> None:
-    await callback.answer("1")
-    await callback.message.answer("1")
-    # тут будет информация из базы данных
-
-
-# ----------------------------------------------------------------------------------------------------------------------
-# ДОБАВИТЬ / УДАЛИТЬ ПЛЕЙЛИСТ(Ы)
-# ----------------------------------------------------------------------------------------------------------------------
-class PlayList(StatesGroup):
-    add_playlist = State()
-    del_playlist = State()
-
-
-@router.message(F.text == 'Добавить Плейлист')
-async def add_artist_1(message: Message, state: FSMContext) -> None:
-    # запрашиваем плейлист пользователя
-    await state.set_state(PlayList.add_playlist)
-    await message.answer("Введите ссылку на Плейлист, исполнители которых вам интересны")
-
-
-@router.message(F.text == 'Удалить Плейлист')
-async def del_artist_1(message: Message, state: FSMContext) -> None:
-    # запрашиваем плейлист пользователя
-    await state.set_state(PlayList.del_playlist)
-    await message.answer("Введите ссылку на Плейлист, концерты исполнителей которых вы не хотите посещать)")
-
-
-@router.message(PlayList.add_playlist)
-async def add_artist_2(message: Message, state: FSMContext) -> None:
-    # сохраняем плейлист пользователя
-    await state.update_data(artist=message.text)
-    # добавить в базу данных
-    await state.clear()
-    await message.reply("Плейлист Добавлен!")
-
-
-@router.message(PlayList.del_playlist)
-async def del_artist_2(message: Message, state: FSMContext) -> None:
-    # сохраняем плейлист пользователя
-    await state.update_data(artist=message.text)
-    # удалить из базы данных
-    await state.clear()
-    await message.reply("Плейлист Удален!")
