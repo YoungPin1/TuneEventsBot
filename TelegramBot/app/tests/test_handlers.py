@@ -5,11 +5,45 @@ import pytest
 from unittest.mock import AsyncMock, patch, Mock
 from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
+from aiogram_tests import MockedBot
+from aiogram_tests.handler import MessageHandler
+from aiogram_tests.types.dataset import MESSAGE
+from aiogram_tests.handler import CallbackQueryHandler
+from aiogram_tests.types.dataset import CALLBACK_QUERY
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from handlers import command_start_handler, add_first_link, send_concert, send_next_concert, Info
+from handlers import command_start_handler, add_first_link, send_concert, send_next_concert, Info, add_playlist_button_handler
 
+
+
+@pytest.mark.asyncio
+async def test_command_start():
+    # Initialize the mocked bot with the handler
+    request = MockedBot(MessageHandler(command_start_handler))
+
+    # Simulate sending the /start command
+    calls = await request.query(message=MESSAGE.as_object(text="/start"))
+
+    # Fetch the response message
+    response_message = calls.send_message.fetchone()
+
+    # Assert that the response contains the expected greeting
+    assert "Привет" in response_message.text
+
+@pytest.mark.asyncio
+async def test_add_playlist_button():
+    # Initialize the mocked bot with the handler
+    request = MockedBot(CallbackQueryHandler(add_playlist_button_handler))
+
+    # Simulate a callback query with data "add_playlist"
+    calls = await request.query(callback_query=CALLBACK_QUERY.as_object(data="add_playlist"))
+
+    # Fetch the response message
+    response_message = calls.edit_message_text.fetchone()
+
+    # Assert that the response contains the expected prompt
+    assert "Добавьте ссылку на плейлист" in response_message.text
 
 # Проверка изначальной работоспособности кода
 @pytest.mark.asyncio
@@ -28,6 +62,26 @@ async def test_command_start_handler():
 
     message.answer.assert_any_call("Привет, <b>Test User</b>!")
     state.set_state.assert_called_once_with(Info.link)
+
+from unittest.mock import patch
+
+@patch('handlers.process_playlist')
+@pytest.mark.asyncio
+async def test_add_first_city(mock_process_playlist):
+    # Define the mock return value
+    mock_process_playlist.return_value = []
+
+    # Initialize the mocked bot with the handler
+    request = MockedBot(MessageHandler(add_first_city))
+
+    # Simulate sending a city name
+    calls = await request.query(message=MESSAGE.as_object(text="Москва"))
+
+    # Fetch the response message
+    response_message = calls.send_message.fetchone()
+
+    # Assert that the response contains the expected message
+    assert "Поиск концертов" in response_message.text
 
 
 # Проверка правильного добавления ссылки
