@@ -16,7 +16,7 @@ services:
       dockerfile: Dockerfile
     container_name: telegram_bot
     command: >
-      sh -c "alembic upgrade head && alembic revision --autogenerate -m "check" && python main.py"
+      sh -c "alembic upgrade head && alembic revision --autogenerate -m "implementation" && python main.py"
     env_file:
       - app/.env
     depends_on:

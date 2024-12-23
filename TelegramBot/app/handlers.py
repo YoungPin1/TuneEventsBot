@@ -89,8 +89,8 @@ async def add_first_city(message: Message, state: FSMContext) -> None:
     playlist_link = data.get('link')
     await state.update_data(city=message.text)
     user_telegram_id = message.from_user.id
-    process_playlist(playlist_link, message.text, user_telegram_id)
     new_upload_id = get_last_upload_id_by_user_telegram_id(user_telegram_id) + 1
+    process_playlist(playlist_link, message.text, user_telegram_id, new_upload_id)
     concerts = get_concerts_by_user_telegram_id(user_telegram_id, new_upload_id)
     await state.update_data(concerts=concerts)
 

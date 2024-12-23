@@ -52,7 +52,7 @@ class YMusicUser:
             return []
 
 
-def process_playlist(url, city, user_telegram_id):
+def process_playlist(url, city, user_telegram_id, new_upload_id):
     user = YMusicUser(city.lower())
     playlist_id, user_id = YMusicUser.extract_user_and_playlist_id(url)
 
@@ -76,7 +76,10 @@ def process_playlist(url, city, user_telegram_id):
                             'address': concert.get('address', None),
                             'afisha_url': concert.get('afisha_url', None)
                         }
-                        add_artist_and_concert_to_db(concert_data, user_telegram_id)
+                        add_artist_and_concert_to_db(concert_data, user_telegram_id, new_upload_id)
+                        # Вывод текущего upload_id
+                        print(
+                            f"Пользователь с ID {user_telegram_id} загрузил новый плейлист с upload_id {new_upload_id}.")
                         user.all_concerts.append(concert)
                 except Exception as e:
                     print(f"Ошибка при обработке артиста с ID {artist_id}: {e}")
