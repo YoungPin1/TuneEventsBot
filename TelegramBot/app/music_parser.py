@@ -1,9 +1,10 @@
 import os
 from re import search
-
 from dotenv import load_dotenv
 from yandex_music import Client
 from db_editor import add_artist_and_concert_to_db
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
 
 
 class YMusicUser:
@@ -12,7 +13,6 @@ class YMusicUser:
         token = os.getenv('YMUSIC_TOKEN')
         self.client = Client(token).init()
         self.city = city
-        self.concerts = []
         self.all_concerts = []
 
     @staticmethod
@@ -41,40 +41,43 @@ class YMusicUser:
             artist = self.client.artists_brief_info(artist_id)
             if not artist or not hasattr(artist, 'concerts'):
                 print(f"Информация о концертах для артиста с ID {artist_id} недоступна.")
-                return
+                return []
             concerts = artist.concerts
-            for concert in concerts:
-                if concert.get('city') == self.city:
-                    self.concerts.append(concert)
-                    self.all_concerts.append(concert)
+            return [concert for concert in concerts if concert.get('city').lower() == self.city.lower()]
         except Exception as e:
             print(f"Ошибка при получении информации об артисте с ID {artist_id}: {e}")
-
+            return []
 
 def process_playlist(url, city, user_telegram_id):
-    user = YMusicUser(city)
+    user = YMusicUser(city.lower())
     playlist_id, user_id = YMusicUser.extract_user_and_playlist_id(url)
 
     if playlist_id and user_id:
         artist_ids = user.get_artists(playlist_id, user_id)
 
-        for artist_id in artist_ids:
-            user.get_concert(artist_id)
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            future_to_artist = {executor.submit(user.get_concert, artist_id): artist_id for artist_id in artist_ids}
 
-            for concert in user.concerts:
-                concert_data = {
-                    'artist_id': artist_id,
-                    'concert_title': concert['concert_title'],
-                    'datetime': concert['datetime'],
-                    'city': concert.get('city', 'Не указан'),
-                    'place': concert.get('place', None),
-                    'address': concert.get('address', None),
-                    'afisha_url': concert.get('afisha_url', None)
-                }
+            for future in as_completed(future_to_artist):
+                artist_id = future_to_artist[future]
+                try:
+                    concerts = future.result()
+                    for concert in concerts:
+                        concert_data = {
+                            'artist_id': artist_id,
+                            'concert_title': concert['concert_title'],
+                            'datetime': concert['datetime'],
+                            'city': concert.get('city', 'Не указан'),
+                            'place': concert.get('place', None),
+                            'address': concert.get('address', None),
+                            'afisha_url': concert.get('afisha_url', None)
+                        }
+                        add_artist_and_concert_to_db(concert_data, user_telegram_id)
+                        user.all_concerts.append(concert)
+                except Exception as e:
+                    print(f"Ошибка при обработке артиста с ID {artist_id}: {e}")
 
-                add_artist_and_concert_to_db(concert_data, user_telegram_id)
-            user.concerts = []
         return user.all_concerts
     else:
         print("Некорректная ссылка на плейлист.")
-
+        return []
