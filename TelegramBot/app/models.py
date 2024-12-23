@@ -44,9 +44,9 @@ class Concert(Base):
     concert_date = Column(Date, nullable=False)
     concert_city = Column(String, nullable=False)
     concert_title = Column(String, nullable=False)
-    place = Column(String, nullable=True)
-    address = Column(String, nullable=True)
-    afisha_url = Column(String, nullable=True)
+    place = Column(String, nullable=False)
+    address = Column(String, nullable=False)
+    afisha_url = Column(String, nullable=False)
 
     artists = relationship("Artist", secondary=artists_concerts, back_populates="concerts")
     user_concerts = relationship("UserConcerts", back_populates="concert")

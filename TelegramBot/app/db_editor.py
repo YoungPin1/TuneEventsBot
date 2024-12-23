@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from aiogram.types import Message
 
 from config import SessionLocal
@@ -47,7 +45,7 @@ def add_artist_and_concert_to_db(concert_data: dict, user_telegram_id: int):
 
             # Извлекаем данные о концерте
             artist_name = str(concert_data['artist_id'])  # Предполагается, что artist_name передается в concert_data
-            concert_date = datetime.strptime(concert_data['datetime'].split('+')[0], "%Y-%m-%dT%H:%M:%S")
+            concert_date = concert_data['datetime']
             concert_city = concert_data['city']
             concert_title = concert_data['concert_title']
             place = concert_data.get('place', None)
@@ -82,6 +80,7 @@ def add_artist_and_concert_to_db(concert_data: dict, user_telegram_id: int):
                     address=address,
                     afisha_url=afisha_url
                 )
+
                 session.add(concert)
                 session.commit()
 
@@ -136,11 +135,10 @@ def get_concerts_by_user_telegram_id(user_telegram_id: int) -> list[dict]:
                 concert = user_concert.concert
                 if not concert:
                     continue
-
                 # Формируем словарь с нужными данными
                 concert_data = {
                     "concert_title": concert.concert_title,
-                    "datetime": concert.concert_date.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "datetime": concert.concert_date,
                     "place": concert.place,
                     "address": concert.address,
                     "afisha_url": concert.afisha_url

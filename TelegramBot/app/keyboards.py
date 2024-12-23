@@ -6,7 +6,10 @@ from constants import (
     BACK_BUTTON_TEXT,
     SHOW_EVENTS_CALLBACK,
     ADD_PLAYLIST_CALLBACK,
-    CHANGE_CITY_CALLBACK,
+    SUPPORT_BUTTON_TEXT,
+    SUPPORT_BUTTON_URL,
+    BOT_CAPABILITIES_BUTTON_TEXT,
+    WHAT_BOT_CAN_DO_CALLBACK,
 )
 
 # Клавиатура для приветственного сообщения
@@ -22,6 +25,16 @@ intro_keyboard = InlineKeyboardMarkup(
             InlineKeyboardButton(
                 text=ADD_PLAYLIST_BUTTON,
                 callback_data=ADD_PLAYLIST_CALLBACK
+            )
+        ],
+        [
+            InlineKeyboardButton(
+                text=SUPPORT_BUTTON_TEXT,
+                url=SUPPORT_BUTTON_URL  # Используем URL для перенаправления
+            ),
+            InlineKeyboardButton(
+                text=BOT_CAPABILITIES_BUTTON_TEXT,
+                callback_data=WHAT_BOT_CAN_DO_CALLBACK
             )
         ]
     ]

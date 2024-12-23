@@ -12,6 +12,7 @@ from constants import *
 from models import *
 from db_editor import is_user_registered, get_concerts_by_user_telegram_id
 from music_parser import process_playlist
+from aux_functions import checkCityInSet
 
 # import locale
 
@@ -44,8 +45,6 @@ async def send_intro_message(message: Message):
 async def command_start_handler(message: Message, state: FSMContext) -> None:
     await message.answer(f"Привет, {html.bold(message.from_user.full_name)}! 👋", parse_mode="HTML")
     is_user_registered(message)
-    # prompt_message = await message.answer(ADD_FIRST_PLAYLIST, parse_mode="HTML")
-    # await state.update_data(prompt_message_id=prompt_message.message_id)
 
     # Отправка приветственного сообщения с кнопками
     await send_intro_message(message)
@@ -155,11 +154,19 @@ async def add_first_city(message: Message, state: FSMContext) -> None:
     except Exception as e:
         print(f"{ERROR_DELETE_WAIT_MESSAGE} {e}")
 
+    # Проверка города
+    if not checkCityInSet(message.text):
+        await message.answer(INVALID_CITY)
+        # Повторно отправляем запрос на ввод города с клавиатурой для выбора
+        prompt_message = await message.answer(ENTER_CITY_PROMPT)
+        await state.update_data(prompt_message_id=prompt_message.message_id)
+        return  # Останавливаем дальнейшее выполнение обработчика
 
-    current_concert_index = 0
+    # Отправляем сообщение с концертами и сохраняем его message_id
     concerts_message = await message.answer(FAVORITE_ARTISTS_CONCERTS)
     await state.update_data(concerts_message_id=concerts_message.message_id)
 
+    current_concert_index = 0
     await send_concert(message, concerts, current_concert_index)
 
 
@@ -167,13 +174,10 @@ async def add_first_city(message: Message, state: FSMContext) -> None:
 async def send_concert(message: Message, concerts, index: int):
     concert = concerts[index]
     concertTitle = concert['concert_title']
-    datetimeRaw = concert['datetime']
+    formattedDate = concert['datetime']
     place = concert['place']
     address = concert['address']
     afishaUrl = concert['afisha_url']
-
-    datetimeStr = datetimeRaw.split('+')[0]
-    formattedDate = datetime.strptime(datetimeStr, "%Y-%m-%dT%H:%M:%S").strftime("%d %B %Y, %H:%M")
 
     total_concerts = len(concerts)
     counter_text = f"<b>{index + 1} из {total_concerts}</b>\n\n"
@@ -247,6 +251,20 @@ async def send_next_concert(callback: CallbackQuery, state: FSMContext):
     await callback.answer()
 
 
+# Обработчик кнопки "Что умеет бот"
+@router.callback_query(F.data == "what_bot_can_do")
+async def what_bot_can_do_handler(callback_query: CallbackQuery):
+    await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
+
+    help_text = HELP_TEXT
+
+    await callback_query.message.edit_text(
+        help_text,
+        reply_markup=kb.back_keyboard,
+        parse_mode="HTML"
+    )
+
+# Обработчик добавления плейлиста в базу данных (если необходимо)
 async def add_playlist_to_db(message: Message, state: FSMContext) -> None:
     playlist_link = message.text
     user_telegram_id = message.from_user.id
@@ -288,11 +306,11 @@ async def add_playlist_to_db(message: Message, state: FSMContext) -> None:
                     session.commit()
 
         # Уведомляем пользователя, что плейлист успешно добавлен
-        await message.answer("Плейлист успешно добавлен и артисты сохранены!")
+        await message.answer(PLAYLIST_SAVE_SUCCESS_MESSAGE)
     except Exception as e:
         # В случае ошибки выводим сообщение и логируем ошибку
-        print(f"Ошибка при добавлении плейлиста: {e}")
-        await message.answer("Произошла ошибка при добавлении плейлиста. Попробуйте снова.")
+        print(f"{ERROR_ADD_PLAYLIST} {e}")
+        await message.answer(ERROR_ADD_PLAYLIST_TRY_AGAIN)
 
     # Очищаем состояние FSM
     await state.clear()
