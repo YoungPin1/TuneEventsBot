@@ -1,10 +1,11 @@
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from re import search
+
 from dotenv import load_dotenv
 from yandex_music import Client
-from db_editor import add_artist_and_concert_to_db
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
+from db_editor import add_artist_and_concert_to_db
 
 
 class YMusicUser:
@@ -43,10 +44,13 @@ class YMusicUser:
                 print(f"Информация о концертах для артиста с ID {artist_id} недоступна.")
                 return []
             concerts = artist.concerts
-            return [concert for concert in concerts if concert.get('city').lower() == self.city.lower()]
+            return [concert for concert in concerts if
+                    concert.get('city').lower().replace(" ", "").replace("-", "")
+                    == self.city.lower().replace(" ", "").replace("-", "")]
         except Exception as e:
             print(f"Ошибка при получении информации об артисте с ID {artist_id}: {e}")
             return []
+
 
 def process_playlist(url, city, user_telegram_id):
     user = YMusicUser(city.lower())

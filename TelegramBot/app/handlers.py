@@ -10,6 +10,7 @@ import keyboards as kb
 from config import SessionLocal
 from constants import *
 from models import *
+from db_editor import is_user_registered, get_concerts_by_user_telegram_id
 from music_parser import process_playlist
 
 # import locale
@@ -42,7 +43,7 @@ async def send_intro_message(message: Message):
 @router.message(CommandStart())
 async def command_start_handler(message: Message, state: FSMContext) -> None:
     await message.answer(f"Привет, {html.bold(message.from_user.full_name)}! 👋", parse_mode="HTML")
-
+    is_user_registered(message)
     # prompt_message = await message.answer(ADD_FIRST_PLAYLIST, parse_mode="HTML")
     # await state.update_data(prompt_message_id=prompt_message.message_id)
 
@@ -145,7 +146,8 @@ async def add_first_city(message: Message, state: FSMContext) -> None:
     playlist_link = data.get('link')
     await state.update_data(city=message.text)
     user_telegram_id = message.from_user.id
-    concerts = process_playlist(playlist_link, message.text, user_telegram_id)
+    process_playlist(playlist_link, message.text, user_telegram_id)
+    concerts = get_concerts_by_user_telegram_id(user_telegram_id)
     await state.update_data(concerts=concerts)
 
     try:
@@ -153,9 +155,11 @@ async def add_first_city(message: Message, state: FSMContext) -> None:
     except Exception as e:
         print(f"{ERROR_DELETE_WAIT_MESSAGE} {e}")
 
-    await message.answer(FAVORITE_ARTISTS_CONCERTS)
 
     current_concert_index = 0
+    concerts_message = await message.answer(FAVORITE_ARTISTS_CONCERTS)
+    await state.update_data(concerts_message_id=concerts_message.message_id)
+
     await send_concert(message, concerts, current_concert_index)
 
 
@@ -209,6 +213,18 @@ async def send_next_concert(callback: CallbackQuery, state: FSMContext):
         await send_concert(callback.message, concerts, current_concert_index)
     else:
         await callback.answer(LAST_CONCERT_MESSAGE, show_alert=True)
+
+        # Удаляем сообщение "🎉 Вот концерты ваших любимых артистов:"
+        concerts_message_id = data.get('concerts_message_id')
+        if concerts_message_id:
+            try:
+                await callback.message.bot.delete_message(
+                    chat_id=callback.message.chat.id,
+                    message_id=concerts_message_id
+                )
+            except Exception as e:
+                print(f"{ERROR_DELETE_PLAYLIST_REQUEST_MESSAGE} {e}")
+
         current_concert_index = 0
         await state.clear()
 
@@ -229,8 +245,6 @@ async def send_next_concert(callback: CallbackQuery, state: FSMContext):
             )
 
     await callback.answer()
-
-
 
 
 async def add_playlist_to_db(message: Message, state: FSMContext) -> None:

@@ -1,4 +1,5 @@
 from datetime import datetime
+
 from aiogram.types import Message
 
 from config import SessionLocal
@@ -65,7 +66,10 @@ def add_artist_and_concert_to_db(concert_data: dict, user_telegram_id: int):
             concert = session.query(Concert).filter_by(
                 concert_date=concert_date,
                 concert_city=concert_city,
-                concert_title=concert_title
+                concert_title=concert_title,
+                place=place,
+                address=address,
+                afisha_url=afisha_url
             ).first()
 
             if not concert:
@@ -112,3 +116,39 @@ def add_artist_and_concert_to_db(concert_data: dict, user_telegram_id: int):
 
     except Exception as e:
         print(f"Ошибка при добавлении артиста и концертов: {e}")
+
+
+def get_concerts_by_user_telegram_id(user_telegram_id: int) -> list[dict]:
+    try:
+        with SessionLocal() as session:
+            # Получаем связи пользователя с концертами
+            user = session.query(User).filter_by(user_telegram_id=user_telegram_id).first()
+            user_concerts = session.query(UserConcerts).filter_by(user_id=user.user_id).all()
+
+            if not user_concerts:
+                print(f"Концерты для пользователя с ID {user_telegram_id} не найдены.")
+                return []
+
+            concerts_list = []
+
+            for user_concert in user_concerts:
+                # Достаем данные о концерте
+                concert = user_concert.concert
+                if not concert:
+                    continue
+
+                # Формируем словарь с нужными данными
+                concert_data = {
+                    "concert_title": concert.concert_title,
+                    "datetime": concert.concert_date.strftime("%Y-%m-%dT%H:%M:%S"),
+                    "place": concert.place,
+                    "address": concert.address,
+                    "afisha_url": concert.afisha_url
+                }
+                concerts_list.append(concert_data)
+
+            return concerts_list
+
+    except Exception as e:
+        print(f"Ошибка при получении концертов для пользователя: {e}")
+        return []
