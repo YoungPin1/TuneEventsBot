@@ -22,10 +22,6 @@ intro_keyboard = InlineKeyboardMarkup(
             InlineKeyboardButton(
                 text=ADD_PLAYLIST_BUTTON,
                 callback_data=ADD_PLAYLIST_CALLBACK
-            ),
-            InlineKeyboardButton(
-                text=CHANGE_CITY_BUTTON,
-                callback_data=CHANGE_CITY_CALLBACK
             )
         ]
     ]

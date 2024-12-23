@@ -209,8 +209,28 @@ async def send_next_concert(callback: CallbackQuery, state: FSMContext):
         await send_concert(callback.message, concerts, current_concert_index)
     else:
         await callback.answer(LAST_CONCERT_MESSAGE, show_alert=True)
+        current_concert_index = 0
+        await state.clear()
+
+        # Заменяем текущее сообщение на приветственное сообщение
+        try:
+            await callback.message.edit_text(
+                INTRO_MESSAGE_TEXT,
+                reply_markup=kb.intro_keyboard,
+                parse_mode="HTML"
+            )
+        except Exception as e:
+            print(f"{ERROR_EDIT_USER_MESSAGE} {e}")
+            # Если редактирование не удалось, отправляем новое сообщение
+            await callback.message.answer(
+                INTRO_MESSAGE_TEXT,
+                reply_markup=kb.intro_keyboard,
+                parse_mode="HTML"
+            )
 
     await callback.answer()
+
+
 
 
 async def add_playlist_to_db(message: Message, state: FSMContext) -> None:
