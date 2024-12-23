@@ -74,6 +74,25 @@ async def add_playlist_button_handler(callback_query: CallbackQuery, state: FSMC
         # Если редактирование удалось, сохраняем новое message_id
         await state.update_data(prompt_message_id=callback_query.message.message_id)
 
+# Обработчик кнопки "Показать мои события"
+@router.callback_query(F.data == "show_my_events")
+async def show_my_events_handler(callback_query: CallbackQuery, state: FSMContext):
+    user_id = callback_query.from_user.id
+    concerts = get_concerts_by_user_telegram_id(user_id)
+
+    if not concerts:
+        await callback_query.answer("У вас нет сохраненных событий.", show_alert=True)
+        return
+
+    await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
+
+    await state.update_data(concerts=concerts)
+    await state.update_data(concerts_message_id=callback_query.message.message_id)
+
+    global current_concert_index
+    current_concert_index = 0
+    await send_concert(callback_query.message, concerts, current_concert_index)
+
 
 # Обработчик кнопки "Назад"
 @router.callback_query(F.data == "back_to_intro")

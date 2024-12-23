@@ -57,7 +57,7 @@ CHANGE_CITY_BUTTON = "🌍 Изменить город"
 BACK_BUTTON_TEXT = "⬅️ Назад"
 
 # Callback data для кнопок
-SHOW_EVENTS_CALLBACK = "show_events"
+SHOW_EVENTS_CALLBACK = "show_my_events"
 ADD_PLAYLIST_CALLBACK = "add_playlist"
 
 PLAYLIST_SAVE_SUCCESS_MESSAGE = "Плейлист успешно добавлен и артисты сохранены!"
