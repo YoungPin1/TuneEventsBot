@@ -62,6 +62,7 @@ SHOW_EVENTS_CALLBACK = "show_my_events"
 ADD_PLAYLIST_CALLBACK = "add_playlist"
 BACK_BUTTON_CALLBACK = "back_to_intro"
 CLEAN_PLAYLIST_CALLBACK = "clean_playlist"
+NEXT_CONCERT_CALLBACK = "next_concert"
 
 PLAYLIST_SAVE_SUCCESS_MESSAGE = "Плейлист успешно добавлен и артисты сохранены!"
 PLAYLIST_DELETE_SUCCESS = "Ваш плейлист успешно очищен."

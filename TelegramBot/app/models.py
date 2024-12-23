@@ -57,6 +57,6 @@ class UserConcerts(Base):
     user_concerts_id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey('user.user_id'), nullable=False)
     concert_id = Column(Integer, ForeignKey('concerts.concert_id'), nullable=False)
-
+    upload_id = Column(Integer, nullable=False, default=0)
     user = relationship("User", back_populates="concerts")
     concert = relationship("Concert", back_populates="user_concerts")

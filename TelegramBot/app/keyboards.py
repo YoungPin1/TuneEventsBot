@@ -1,4 +1,5 @@
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+
 from constants import *
 
 # Клавиатура для приветственного сообщения
@@ -38,6 +39,24 @@ intro_keyboard = InlineKeyboardMarkup(
 # Клавиатура для назад
 back_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text=BACK_BUTTON_TEXT,
+                callback_data=BACK_BUTTON_CALLBACK
+            )
+        ]
+    ]
+)
+
+# Новая клавиатура для отображения концертов с кнопками "Следующее" и "Назад"
+concerts_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [
+            InlineKeyboardButton(
+                text=NEXT_CONCERT_MESSAGE,
+                callback_data=NEXT_CONCERT_CALLBACK
+            )
+        ],
         [
             InlineKeyboardButton(
                 text=BACK_BUTTON_TEXT,

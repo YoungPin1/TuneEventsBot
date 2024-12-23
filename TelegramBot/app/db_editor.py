@@ -2,6 +2,7 @@ from aiogram.types import Message
 
 from config import SessionLocal
 from models import *
+from sqlalchemy import func
 
 
 def is_user_registered(message: Message) -> bool:
@@ -43,8 +44,12 @@ def add_artist_and_concert_to_db(concert_data: dict, user_telegram_id: int):
                 print(f"Пользователь с ID {user_telegram_id} не найден в базе.")
                 return
 
+            # Находим максимальный upload_id для пользователя
+            max_upload_id = get_last_upload_id_by_user_telegram_id(user_telegram_id)
+            current_upload_id = (max_upload_id or 0) + 1
+
             # Извлекаем данные о концерте
-            artist_name = str(concert_data['artist_id'])  # Предполагается, что artist_name передается в concert_data
+            artist_name = str(concert_data['artist_id'])
             concert_date = concert_data['datetime']
             concert_city = concert_data['city']
             concert_title = concert_data['concert_title']
@@ -55,7 +60,6 @@ def add_artist_and_concert_to_db(concert_data: dict, user_telegram_id: int):
             # Проверяем, существует ли артист
             artist = session.query(Artist).filter_by(artist_name=artist_name).first()
             if not artist:
-                # Если артиста нет, создаем его
                 artist = Artist(artist_name=artist_name)
                 session.add(artist)
                 session.commit()
@@ -69,9 +73,7 @@ def add_artist_and_concert_to_db(concert_data: dict, user_telegram_id: int):
                 address=address,
                 afisha_url=afisha_url
             ).first()
-
             if not concert:
-                # Если концерта нет, добавляем его
                 concert = Concert(
                     concert_date=concert_date,
                     concert_city=concert_city,
@@ -80,7 +82,6 @@ def add_artist_and_concert_to_db(concert_data: dict, user_telegram_id: int):
                     address=address,
                     afisha_url=afisha_url
                 )
-
                 session.add(concert)
                 session.commit()
 
@@ -89,9 +90,7 @@ def add_artist_and_concert_to_db(concert_data: dict, user_telegram_id: int):
                 artist_id=artist.artist_id,
                 concert_id=concert.concert_id
             ).first()
-
             if not artist_concert_link:
-                # Если связи нет, добавляем её через промежуточную таблицу
                 insert_statement = artists_concerts.insert().values(
                     artist_id=artist.artist_id,
                     concert_id=concert.concert_id
@@ -99,43 +98,52 @@ def add_artist_and_concert_to_db(concert_data: dict, user_telegram_id: int):
                 session.execute(insert_statement)
                 session.commit()
 
-            # Создаем связь между пользователем и концертом
+            # Создаем или обновляем связь между пользователем и концертом
             user_concert_link = session.query(UserConcerts).filter_by(
                 user_id=user.user_id,
                 concert_id=concert.concert_id
             ).first()
-
-            if not user_concert_link:
+            if user_concert_link:
+                # Если связь уже существует, обновляем upload_id
+                user_concert_link.upload_id = current_upload_id
+            else:
+                # Если связи нет, создаем новую
                 user_concert_link = UserConcerts(
                     user_id=user.user_id,
-                    concert_id=concert.concert_id
+                    concert_id=concert.concert_id,
+                    upload_id=current_upload_id
                 )
                 session.add(user_concert_link)
-                session.commit()
 
+            session.commit()
+
+            # Вывод текущего upload_id
+            print(f"Пользователь с ID {user_telegram_id} загрузил новый плейлист с upload_id {current_upload_id}.")
     except Exception as e:
         print(f"Ошибка при добавлении артиста и концертов: {e}")
 
 
-def get_concerts_by_user_telegram_id(user_telegram_id: int) -> list[dict]:
+# Функция для получения концертов по user_telegram_id и upload_id
+def get_concerts_by_user_telegram_id(user_telegram_id: int, upload_id: int) -> list[dict]:
     try:
-        with SessionLocal() as session:
-            # Получаем связи пользователя с концертами
+        with SessionLocal as session:
+            # Получаем пользователя по его Telegram ID
             user = session.query(User).filter_by(user_telegram_id=user_telegram_id).first()
-            user_concerts = session.query(UserConcerts).filter_by(user_id=user.user_id).all()
-
+            if not user:
+                print(f"Пользователь с Telegram ID {user_telegram_id} не найден.")
+                return []
+            # Фильтруем концерты по user_id и upload_id
+            user_concerts = session.query(UserConcerts).filter_by(user_id=user.user_id, upload_id=upload_id).all()
             if not user_concerts:
-                print(f"Концерты для пользователя с ID {user_telegram_id} не найдены.")
+                print(f"Концерты для пользователя с ID {user_telegram_id} и upload_id {upload_id} не найдены.")
                 return []
 
             concerts_list = []
-
             for user_concert in user_concerts:
-                # Достаем данные о концерте
                 concert = user_concert.concert
                 if not concert:
                     continue
-                # Формируем словарь с нужными данными
+
                 concert_data = {
                     "concert_title": concert.concert_title,
                     "datetime": concert.concert_date,
@@ -162,3 +170,57 @@ def delete_user_concerts_by_user_telegram_id(user_telegram_id: int) -> None:
     except Exception as e:
         session.rollback()
         print(f"Ошибка при удалении записей для пользователя: {e}")
+
+
+def get_all_concerts_by_user_telegram_id(user_telegram_id: int) -> list[dict]:
+    try:
+        with SessionLocal() as session:
+            # Получаем пользователя по его Telegram ID
+            user = session.query(User).filter_by(user_telegram_id=user_telegram_id).first()
+            if not user:
+                print(f"Пользователь с Telegram ID {user_telegram_id} не найден.")
+                return []
+
+            # Фильтруем концерты по user_id
+            user_concerts = session.query(UserConcerts).filter_by(user_id=user.user_id).all()
+            if not user_concerts:
+                print(f"Концерты для пользователя с ID {user_telegram_id} не найдены.")
+                return []
+
+            concerts_list = []
+            for user_concert in user_concerts:
+                concert = user_concert.concert
+                if not concert:
+                    continue
+
+                concert_data = {
+                    "concert_title": concert.concert_title,
+                    "datetime": concert.concert_date,
+                    "place": concert.place,
+                    "address": concert.address,
+                    "afisha_url": concert.afisha_url
+                }
+                concerts_list.append(concert_data)
+
+            return concerts_list
+
+    except Exception as e:
+        print(f"Ошибка при получении концертов для пользователя: {e}")
+        return []
+
+def get_last_upload_id_by_user_telegram_id(user_telegram_id: int) -> int:
+    try:
+        with SessionLocal() as session:
+            # Получаем пользователя по его Telegram ID
+            user = session.query(User).filter_by(user_telegram_id=user_telegram_id).first()
+            if not user:
+                print(f"Пользователь с Telegram ID {user_telegram_id} не найден.")
+                return 0
+
+            # Находим максимальный upload_id для пользователя
+            max_upload_id = session.query(func.max(UserConcerts.upload_id)).filter_by(user_id=user.user_id).scalar()
+            return max_upload_id or 0
+
+    except Exception as e:
+        print(f"Ошибка при получении последнего upload_id для пользователя: {e}")
+        return 0

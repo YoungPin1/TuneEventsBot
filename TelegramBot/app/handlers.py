@@ -2,12 +2,12 @@ from aiogram import F, Router, html
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import Message, CallbackQuery
 
 import keyboards as kb
 from aux_functions import checkCityInSet
 from constants import *
-from db_editor import is_user_registered, get_concerts_by_user_telegram_id, delete_user_concerts_by_user_telegram_id
+from db_editor import *
 from music_parser import process_playlist
 
 router = Router()
@@ -24,7 +24,6 @@ current_concert_index = 0  # Глобальный индекс текущего 
 
 # функция для отправки приветственного сообщения с клавиатурой
 async def send_intro_message(message: Message):
-    # await message.answer_sticker(STICKER_WELCOME)
     await message.answer(
         INTRO_MESSAGE_TEXT,
         reply_markup=kb.intro_keyboard
@@ -91,7 +90,8 @@ async def add_first_city(message: Message, state: FSMContext) -> None:
     await state.update_data(city=message.text)
     user_telegram_id = message.from_user.id
     process_playlist(playlist_link, message.text, user_telegram_id)
-    concerts = get_concerts_by_user_telegram_id(user_telegram_id)
+    new_upload_id = get_last_upload_id_by_user_telegram_id(user_telegram_id) + 1
+    concerts = get_concerts_by_user_telegram_id(user_telegram_id, new_upload_id)
     await state.update_data(concerts=concerts)
 
     try:
@@ -136,11 +136,7 @@ async def send_concert(message: Message, concerts, index: int):
         afisha_url=afishaUrl
     )
 
-    keyboard = InlineKeyboardMarkup(
-        inline_keyboard=[
-            [InlineKeyboardButton(text=NEXT_CONCERT_MESSAGE, callback_data="next_concert")]
-        ]
-    )
+    keyboard = kb.concerts_keyboard
 
     sent_message = await message.answer(messageText, parse_mode="HTML", reply_markup=keyboard)
 
@@ -150,7 +146,7 @@ async def send_concert(message: Message, concerts, index: int):
         print(f"{ERROR_DELETE_USER_MESSAGE} {e}")
 
 
-# Обработчик кнопки "Добавить плейлист"
+# обработчик кнопки "Добавить плейлист"
 @router.callback_query(F.data == "add_playlist")
 async def add_playlist_button_handler(callback_query: CallbackQuery, state: FSMContext):
     await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
@@ -179,7 +175,7 @@ async def add_playlist_button_handler(callback_query: CallbackQuery, state: FSMC
 @router.callback_query(F.data == "show_my_events")
 async def show_my_events_handler(callback_query: CallbackQuery, state: FSMContext):
     user_id = callback_query.from_user.id
-    concerts = get_concerts_by_user_telegram_id(user_id)
+    concerts = get_all_concerts_by_user_telegram_id(user_id)
 
     if not concerts:
         await callback_query.answer("У вас нет сохраненных событий.", show_alert=True)
