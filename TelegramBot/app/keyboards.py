@@ -48,7 +48,7 @@ back_keyboard = InlineKeyboardMarkup(
     ]
 )
 
-# Новая клавиатура для отображения концертов с кнопками "Следующее" и "Назад"
+# Клавиатура для отображения концертов с кнопками "Следующее" и "Назад"
 concerts_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
         [
