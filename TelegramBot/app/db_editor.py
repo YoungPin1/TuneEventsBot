@@ -150,3 +150,15 @@ def get_concerts_by_user_telegram_id(user_telegram_id: int) -> list[dict]:
     except Exception as e:
         print(f"Ошибка при получении концертов для пользователя: {e}")
         return []
+
+
+def delete_user_concerts_by_user_telegram_id(user_telegram_id: int) -> None:
+    try:
+        with SessionLocal() as session:
+            user = session.query(User).filter_by(user_telegram_id=user_telegram_id).first()
+            session.query(UserConcerts).filter_by(user_id=user.user_id).delete()
+            session.commit()
+            print(f"Записи для пользователя с ID {user_telegram_id} успешно удалены.")
+    except Exception as e:
+        session.rollback()
+        print(f"Ошибка при удалении записей для пользователя: {e}")

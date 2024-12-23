@@ -55,14 +55,17 @@ SHOW_EVENTS_BUTTON = "📅 Показать мои события"
 ADD_PLAYLIST_BUTTON = "➕ Добавить плейлист"
 CHANGE_CITY_BUTTON = "🌍 Изменить город"
 BACK_BUTTON_TEXT = "⬅️ Назад"
+CLEAN_PLAYLIST_BUTTON = "🧹 Очистить мой плейлист"
 
 # Callback data для кнопок
 SHOW_EVENTS_CALLBACK = "show_my_events"
 ADD_PLAYLIST_CALLBACK = "add_playlist"
+BACK_BUTTON_CALLBACK = "back_to_intro"
+CLEAN_PLAYLIST_CALLBACK = "clean_playlist"
 
 PLAYLIST_SAVE_SUCCESS_MESSAGE = "Плейлист успешно добавлен и артисты сохранены!"
+PLAYLIST_DELETE_SUCCESS = "Ваш плейлист успешно очищен."
 
-# constants.py
 
 # Новые кнопки
 SUPPORT_BUTTON_TEXT = "💬 Написать в поддержку"

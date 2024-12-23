@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from aiogram import F, Router, html
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
@@ -7,19 +5,12 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 
 import keyboards as kb
-from config import SessionLocal
-from constants import *
-from models import *
-from db_editor import is_user_registered, get_concerts_by_user_telegram_id
-from music_parser import process_playlist
 from aux_functions import checkCityInSet
-
-# import locale
+from constants import *
+from db_editor import is_user_registered, get_concerts_by_user_telegram_id, delete_user_concerts_by_user_telegram_id
+from music_parser import process_playlist
 
 router = Router()
-
-
-# locale.setlocale(locale.LC_TIME, 'ru_RU.UTF-8')
 
 
 class Info(StatesGroup):
@@ -48,71 +39,6 @@ async def command_start_handler(message: Message, state: FSMContext) -> None:
 
     # Отправка приветственного сообщения с кнопками
     await send_intro_message(message)
-
-
-# Обработчик кнопки "Добавить плейлист"
-@router.callback_query(F.data == "add_playlist")
-async def add_playlist_button_handler(callback_query: CallbackQuery, state: FSMContext):
-    await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
-
-    await state.set_state(Info.link)
-    try:
-        await callback_query.message.edit_text(
-            ADD_FIRST_PLAYLIST,
-            reply_markup=kb.add_playlist_keyboard,
-            parse_mode="HTML"
-        )
-    except Exception as e:
-        print(f"{ERROR_EDIT_USER_MESSAGE} {e}")
-        prompt_message = await callback_query.message.answer(
-            ADD_FIRST_PLAYLIST,
-            reply_markup=kb.add_playlist_keyboard,
-            parse_mode="HTML"
-        )
-        await state.update_data(prompt_message_id=prompt_message.message_id)
-    else:
-        # Если редактирование удалось, сохраняем новое message_id
-        await state.update_data(prompt_message_id=callback_query.message.message_id)
-
-# Обработчик кнопки "Показать мои события"
-@router.callback_query(F.data == "show_my_events")
-async def show_my_events_handler(callback_query: CallbackQuery, state: FSMContext):
-    user_id = callback_query.from_user.id
-    concerts = get_concerts_by_user_telegram_id(user_id)
-
-    if not concerts:
-        await callback_query.answer("У вас нет сохраненных событий.", show_alert=True)
-        return
-
-    await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
-
-    await state.update_data(concerts=concerts)
-    await state.update_data(concerts_message_id=callback_query.message.message_id)
-
-    global current_concert_index
-    current_concert_index = 0
-    await send_concert(callback_query.message, concerts, current_concert_index)
-
-
-# Обработчик кнопки "Назад"
-@router.callback_query(F.data == "back_to_intro")
-async def back_to_intro_handler(callback_query: CallbackQuery):
-    await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
-
-    # Попытка заменить сообщение на приветственное
-    try:
-        await callback_query.message.edit_text(
-            INTRO_MESSAGE_TEXT,
-            reply_markup=kb.intro_keyboard,
-            parse_mode="HTML"
-        )
-    except Exception as e:
-        print(f"{ERROR_EDIT_USER_MESSAGE} {e}")
-        await callback_query.message.answer(
-            INTRO_MESSAGE_TEXT,
-            reply_markup=kb.intro_keyboard,
-            parse_mode="HTML"
-        )
 
 
 # Обрабатываем ссылку на плейлист
@@ -224,6 +150,72 @@ async def send_concert(message: Message, concerts, index: int):
         print(f"{ERROR_DELETE_USER_MESSAGE} {e}")
 
 
+# Обработчик кнопки "Добавить плейлист"
+@router.callback_query(F.data == "add_playlist")
+async def add_playlist_button_handler(callback_query: CallbackQuery, state: FSMContext):
+    await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
+
+    await state.set_state(Info.link)
+    try:
+        await callback_query.message.edit_text(
+            ADD_FIRST_PLAYLIST,
+            reply_markup=kb.back_keyboard,
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        print(f"{ERROR_EDIT_USER_MESSAGE} {e}")
+        prompt_message = await callback_query.message.answer(
+            ADD_FIRST_PLAYLIST,
+            reply_markup=kb.back_keyboard,
+            parse_mode="HTML"
+        )
+        await state.update_data(prompt_message_id=prompt_message.message_id)
+    else:
+        # Если редактирование удалось, сохраняем новое message_id
+        await state.update_data(prompt_message_id=callback_query.message.message_id)
+
+
+# Обработчик кнопки "Показать мои события"
+@router.callback_query(F.data == "show_my_events")
+async def show_my_events_handler(callback_query: CallbackQuery, state: FSMContext):
+    user_id = callback_query.from_user.id
+    concerts = get_concerts_by_user_telegram_id(user_id)
+
+    if not concerts:
+        await callback_query.answer("У вас нет сохраненных событий.", show_alert=True)
+        return
+
+    await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
+
+    await state.update_data(concerts=concerts)
+    await state.update_data(concerts_message_id=callback_query.message.message_id)
+
+    global current_concert_index
+    current_concert_index = 0
+    await send_concert(callback_query.message, concerts, current_concert_index)
+
+
+# Обработчик кнопки "Назад"
+@router.callback_query(F.data == "back_to_intro")
+async def back_to_intro_handler(callback_query: CallbackQuery):
+    await callback_query.answer()  # Закрываем уведомление о нажатии кнопки
+
+    # Попытка заменить сообщение на приветственное
+    try:
+        await callback_query.message.edit_text(
+            INTRO_MESSAGE_TEXT,
+            reply_markup=kb.intro_keyboard,
+            parse_mode="HTML"
+        )
+    except Exception as e:
+        print(f"{ERROR_EDIT_USER_MESSAGE} {e}")
+        await callback_query.message.answer(
+            INTRO_MESSAGE_TEXT,
+            reply_markup=kb.intro_keyboard,
+            parse_mode="HTML"
+        )
+
+
 # Обработчик кнопки "Следующее"
 @router.callback_query(lambda c: c.data == "next_concert")
 async def send_next_concert(callback: CallbackQuery, state: FSMContext):
@@ -283,53 +275,15 @@ async def what_bot_can_do_handler(callback_query: CallbackQuery):
         parse_mode="HTML"
     )
 
-# Обработчик добавления плейлиста в базу данных (если необходимо)
-async def add_playlist_to_db(message: Message, state: FSMContext) -> None:
-    playlist_link = message.text
-    user_telegram_id = message.from_user.id
 
-    try:
-        # Получаем список артистов из плейлиста
-        artists = process_playlist(playlist_link, None)[1]
+# Обработчик кнопки "Очистить мой плейлист"
+@router.callback_query(F.data == CLEAN_PLAYLIST_CALLBACK)
+async def clean_playlist_handler(callback_query: CallbackQuery, state: FSMContext):
+    user_id = callback_query.from_user.id
+    delete_user_concerts_by_user_telegram_id(user_id)  # Вызов функции очистки плейлиста
 
-        # Создаем сессию для работы с базой данных
-        with SessionLocal() as session:
-            # Проверяем, есть ли пользователь в базе, если нет, то добавляем его
-            user = session.query(User).filter_by(user_telegram_id=user_telegram_id).first()
-            if not user:
-                user = User(user_telegram_id=user_telegram_id, city="Не указан")  # Или запросить город позже
-                session.add(user)
-                session.commit()
-
-            # Обрабатываем артистов
-            for artist_name in artists:
-                # Ищем артиста по имени в базе
-                artist_name = str(artist_name)
-                artist = session.query(Artist).filter_by(artist_name=artist_name).first()
-
-                # Если артиста нет в базе, добавляем нового
-                if not artist:
-                    artist = Artist(artist_name=artist_name)
-                    session.add(artist)
-                    session.commit()  # Сохраняем нового артиста в базе
-
-                # Проверяем, есть ли уже связь между пользователем и артистом
-                link_exists = session.query(ArtistsUsers).filter_by(
-                    user_id=user.user_id,
-                    artist_id=artist.artist_id
-                ).first()
-
-                # Если связи нет, создаем её
-                if not link_exists:
-                    session.add(ArtistsUsers(user_id=user.user_id, artist_id=artist.artist_id))
-                    session.commit()
-
-        # Уведомляем пользователя, что плейлист успешно добавлен
-        await message.answer(PLAYLIST_SAVE_SUCCESS_MESSAGE)
-    except Exception as e:
-        # В случае ошибки выводим сообщение и логируем ошибку
-        print(f"{ERROR_ADD_PLAYLIST} {e}")
-        await message.answer(ERROR_ADD_PLAYLIST_TRY_AGAIN)
+    # Отправка диалогового окна с подтверждением
+    await callback_query.answer(PLAYLIST_DELETE_SUCCESS, show_alert=True)
 
     # Очищаем состояние FSM
     await state.clear()
